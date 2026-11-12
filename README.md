@@ -16,7 +16,7 @@ cp .env.example .env          # puis adapter les valeurs
 OPENDLM_DEMO=true docker compose up -d --build
 ```
 
-L'interface est disponible sur http://127.0.0.1:8080. En mode démo, un connecteur fictif simule une nouvelle fuite dès le deuxième scan.
+L'interface est disponible sur http://127.0.0.1:8080. En mode démo, un connecteur fictif simule une nouvelle fuite dès le deuxième scan (les actus, elles, sont réelles).
 
 Au premier lancement, ouvrez l'interface : une page vous demande de créer le compte administrateur (mot de passe d'au moins 12 caractères). Les mots de passe sont hachés avec scrypt, les sessions sont signées, et les tentatives de connexion répétées sont bloquées temporairement.
 
@@ -44,6 +44,12 @@ Variables d'environnement (voir `.env.example`) :
 | `OPENDLM_SCAN_HOUR` | Heure du scan quotidien (défaut 6) |
 | `OPENDLM_TIMEZONE` | Fuseau horaire (défaut `Europe/Paris`) |
 | `OPENDLM_COOKIE_SECURE` | `true` derrière un proxy HTTPS |
+
+## Suivi au quotidien
+
+- **Tableau de bord** : une barre par jour sur 60 jours et par domaine (vert : aucun problème, rouge : nouvelle fuite, ambre : scan partiel). Un bandeau prévient si aucun scan n'a eu lieu depuis plus de 26 h alors que des domaines vérifiés existent.
+- **Statuts d'une fuite** : nouvelle, acquittée, traitée (réouvrable). Les fuites de la base de référence restent « connues ».
+- **Page Notifications** : liste des canaux (sans jamais afficher les jetons) et message de test.
 
 ## Alertes et rapports
 

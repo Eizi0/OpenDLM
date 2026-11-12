@@ -6,6 +6,10 @@
   <div class="sub">Sources actives : {% if connectors %}{{ connectors | join(", ") }}{% else %}aucune (activer le mode démo ou renseigner une clé HIBP){% endif %}</div>
 </header>
 
+{% if stale %}
+<div class="alert" role="alert"><b>Le scanner semble à l’arrêt.</b> Dernier scan : {{ last_scan | local if last_scan else "jamais" }}. Vérifiez que le service tourne et consultez les journaux.</div>
+{% endif %}
+
 <section class="kpis">
   <div class="kpi {% if totals.new %}alert{% endif %}"><span class="muted">Nouvelles fuites à traiter</span><b>{{ totals.new }}</b></div>
   <div class="kpi"><span class="muted">Domaines suivis</span><b>{{ totals.domains }}</b></div>
@@ -36,6 +40,10 @@
       {% else %}<span class="pill ok">Rien de nouveau</span>{% endif %}
     </div>
     <div class="muted">{{ r.total }} fuite(s) enregistrée(s)</div>
+    {% if r.domain.verified %}
+    <div class="hb" aria-hidden="true">{% for b in r.bars %}<span class="{{ b.cls }}" title="{{ b.label }}"></span>{% endfor %}</div>
+    <div class="muted hbnote">{% if r.streak %}Aucune nouvelle fuite depuis {{ r.streak }} j{% else %}Nouvelle fuite récente{% endif %} · 60 derniers jours</div>
+    {% endif %}
   </a>
   {% else %}
   <div class="pad muted">Aucun domaine pour l’instant. Ajoutez le premier ci-dessus.</div>

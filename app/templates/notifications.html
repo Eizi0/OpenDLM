@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Notifications · OpenDLM{% endblock %}
+{% block nav_notifications %}active{% endblock %}
+{% block content %}
+<header>
+  <h1>Notifications</h1>
+  <div class="sub">Où et quand être prévenu. Les canaux sont définis par des URL <a href="https://github.com/caronc/apprise" rel="noopener noreferrer" style="color:var(--accent)">Apprise</a> dans la variable OPENDLM_NOTIFY_URLS.</div>
+</header>
+
+{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+{% if notice %}<div class="note" role="status">{{ notice }}</div>{% endif %}
+
+<section class="card">
+  <header>
+    <h2>Canaux</h2>
+    <form method="post" action="/notifications/test"><button class="btn primary" type="submit" {% if not channels %}disabled{% endif %}>Envoyer un message de test</button></form>
+  </header>
+  {% for c in channels %}
+  <div class="row"><span class="mono"><b>{{ c }}</b></span><span class="pill ok">Configuré</span></div>
+  {% else %}
+  <div class="pad muted">Aucun canal configuré : les alertes et les rapports restent dans les journaux de l’application. Exemples d’URL : <span class="mono">discord://id/jeton</span>, <span class="mono">ntfy://ntfy.sh/mon-sujet</span>, <span class="mono">mailtos://utilisateur:mot-de-passe@smtp.exemple.fr</span>.</div>
+  {% endfor %}
+  <div class="foot">Les URL contiennent des jetons : elles ne sont jamais affichées ici, seulement le type de canal.</div>
+</section>
+
+<section class="card">
+  <header><h2>Règles</h2></header>
+  <div class="row"><div style="flex:1 1 260px"><b>Alerte immédiate</b><div class="muted">Dès qu’une nouvelle fuite est détectée</div></div>
+    <span class="pill">{{ {"low": "Toutes les fuites", "high": "Élevées et critiques", "critical": "Critiques seulement"}.get(min_severity, min_severity) }}</span></div>
+  <div class="row"><div style="flex:1 1 260px"><b>Mention d’un mot surveillé</b><div class="muted">Une actu contient un de vos mots ou noms de domaine</div></div><span class="pill">Immédiat</span></div>
+  <div class="row"><div style="flex:1 1 260px"><b>Rapports quotidien et mensuel</b><div class="muted">Résumé de la période, y compris ce qui est sous le seuil d’alerte</div></div><span class="pill">Planifié</span></div>
+  <div class="foot">Seuil réglable avec OPENDLM_ALERT_MIN_SEVERITY (low, high, critical).</div>
+</section>
+{% endblock %}

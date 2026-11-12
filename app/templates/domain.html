@@ -42,8 +42,12 @@
         <td>{{ f.breach_date.strftime("%d/%m/%Y") if f.breach_date else "—" }}<br><span class="muted">vu le {{ f.first_seen | local("%d/%m/%Y") }}</span></td>
         <td class="muted">{{ f.data_classes | join(", ") }}</td>
         <td><span class="pill {{ f.severity }}">{{ severity_label.get(f.severity, f.severity) }}</span></td>
-        <td>{% if f.status == "new" %}<span class="pill bad">Nouvelle</span>{% elif f.status == "ack" %}<span class="pill ok">Acquittée</span>{% else %}<span class="pill">Connue</span>{% endif %}</td>
-        <td>{% if f.status == "new" %}<form method="post" action="/findings/{{ f.id }}/ack"><button class="btn small" type="submit">Acquitter</button></form>{% endif %}</td>
+        <td>{% if f.status == "new" %}<span class="pill bad">Nouvelle</span>{% elif f.status == "ack" %}<span class="pill warn">Acquittée</span>{% elif f.status == "resolved" %}<span class="pill ok">Traitée</span>{% else %}<span class="pill">Connue</span>{% endif %}</td>
+        <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+          {% if f.status == "new" %}<form method="post" action="/findings/{{ f.id }}/status"><input type="hidden" name="status" value="ack"><button class="btn small" type="submit">Acquitter</button></form>{% endif %}
+          {% if f.status in ("new", "ack") %}<form method="post" action="/findings/{{ f.id }}/status"><input type="hidden" name="status" value="resolved"><button class="btn small" type="submit">Marquer traitée</button></form>{% endif %}
+          {% if f.status == "resolved" %}<form method="post" action="/findings/{{ f.id }}/status"><input type="hidden" name="status" value="new"><button class="btn small" type="submit">Rouvrir</button></form>{% endif %}
+        </div></td>
       </tr>
     {% else %}
       <tr><td colspan="7" class="muted">Aucune fuite enregistrée. Lancez un premier scan : il crée la base de référence sans alerte.</td></tr>
@@ -70,4 +74,13 @@
   {% endfor %}
 </section>
 {% endif %}
+
+<section class="card">
+  <header><h2>Supprimer ce domaine</h2></header>
+  <form method="post" action="/domains/{{ domain.id }}/delete" class="inline pad">
+    <label for="confirm" class="muted" style="flex:1 1 100%">Supprime aussi ses fuites et son historique de scans. Saisissez <span class="mono">{{ domain.name }}</span> pour confirmer.</label>
+    <input type="text" id="confirm" name="confirm" autocomplete="off" required style="min-width:0;flex:1 1 220px">
+    <button class="btn" type="submit">Supprimer</button>
+  </form>
+</section>
 {% endblock %}

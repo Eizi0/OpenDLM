@@ -13,7 +13,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import String, cast, func, select, text
 from sqlalchemy.orm import Session
 
-from . import migrate, news, reports, scheduler, verification
+from . import health, migrate, news, reports, scheduler, verification
 from .config import settings
 from .connectors import build_connectors
 from .db import SessionLocal
@@ -202,11 +202,14 @@ def _domain_or_404(session: Session, domain_id: int) -> Domain:
 @router.get("/")
 def dashboard(request: Request, session: Session = Depends(get_session)):
     rows = []
+    now = utcnow()
     for d in session.scalars(select(Domain).order_by(Domain.name)):
         new = session.scalar(select(func.count(Finding.id)).where(Finding.domain_id == d.id, Finding.status == "new")) or 0
         total = session.scalar(select(func.count(Finding.id)).where(Finding.domain_id == d.id)) or 0
         last = session.scalar(select(ScanRun).where(ScanRun.domain_id == d.id).order_by(ScanRun.started_at.desc()).limit(1))
-        rows.append({"domain": d, "new": new, "total": total, "last": last})
+        runs = session.scalars(select(ScanRun).where(ScanRun.domain_id == d.id, ScanRun.started_at > now - timedelta(days=health.DAYS + 1))).all()
+        bars = health.build_bars(runs, now)
+        rows.append({"domain": d, "new": new, "total": total, "last": last, "bars": bars, "streak": health.clean_streak(bars)})
     totals = {
         "domains": len(rows),
         "new": sum(r["new"] for r in rows),
@@ -215,7 +218,13 @@ def dashboard(request: Request, session: Session = Depends(get_session)):
     connectors = [c.name for c in build_connectors()]
     recent = session.scalars(select(NewsItem).where(NewsItem.first_seen > utcnow() - timedelta(days=7)).order_by(NewsItem.first_seen.desc()).limit(200)).all()
     mentions = [i for i in recent if i.matched]
-    return templates.TemplateResponse(request, "dashboard.html", {"rows": rows, "totals": totals, "connectors": connectors, "mentions": mentions})
+    last_scan = session.scalar(select(func.max(ScanRun.started_at)))
+    verified = any(r["domain"].verified for r in rows)
+    stale = health.scanner_stale(last_scan, now, has_work=verified and bool(connectors))
+    return templates.TemplateResponse(
+        request, "dashboard.html",
+        {"rows": rows, "totals": totals, "connectors": connectors, "mentions": mentions, "stale": stale, "last_scan": last_scan},
+    )
 
 
 @router.post("/domains")
@@ -267,14 +276,58 @@ def scan_domain(domain_id: int, session: Session = Depends(get_session)):
     return RedirectResponse(f"/domains/{domain.id}", status_code=303)
 
 
-@router.post("/findings/{finding_id}/ack")
-def ack_finding(finding_id: int, session: Session = Depends(get_session)):
+FINDING_STATUSES = {"ack", "resolved", "new"}
+
+
+@router.post("/findings/{finding_id}/status")
+def set_finding_status(finding_id: int, status: str = Form(...), session: Session = Depends(get_session)):
     finding = session.get(Finding, finding_id)
     if finding is None:
         raise HTTPException(404, "Fuite inconnue")
-    finding.status = "ack"
+    if status not in FINDING_STATUSES:
+        raise HTTPException(422, "Statut invalide")
+    finding.status = status
     session.commit()
     return RedirectResponse(f"/domains/{finding.domain_id}", status_code=303)
+
+
+@router.post("/findings/{finding_id}/ack")
+def ack_finding(finding_id: int, session: Session = Depends(get_session)):
+    return set_finding_status(finding_id, "ack", session)
+
+
+@router.post("/domains/{domain_id}/delete")
+def delete_domain(domain_id: int, confirm: str = Form(""), session: Session = Depends(get_session)):
+    domain = _domain_or_404(session, domain_id)
+    if confirm.strip().lower() != domain.name:
+        raise HTTPException(422, "Saisissez le nom exact du domaine pour confirmer la suppression")
+    session.delete(domain)
+    session.commit()
+    return RedirectResponse("/", status_code=303)
+
+
+def _mask_channel(url: str) -> str:
+    """Affiche le type de canal sans jamais montrer les jetons contenus dans l'URL."""
+    scheme = url.split("://", 1)[0] if "://" in url else "inconnu"
+    return f"{scheme}://…"
+
+
+@router.get("/notifications")
+def notifications_page(request: Request):
+    channels = [_mask_channel(u) for u in settings.notify_url_list]
+    return templates.TemplateResponse(
+        request, "notifications.html",
+        {"channels": channels, "min_severity": settings.alert_min_severity, "notice": request.query_params.get("notice"), "error": request.query_params.get("error")},
+    )
+
+
+@router.post("/notifications/test")
+def notifications_test():
+    if not settings.notify_url_list:
+        return RedirectResponse("/notifications?error=Aucun canal configuré (OPENDLM_NOTIFY_URLS)", status_code=303)
+    ok = Notifier().send("[OpenDLM] Message de test", "Si vous lisez ce message, ce canal reçoit bien les alertes et les rapports d'OpenDLM.")
+    flag = "notice=Message de test envoyé" if ok else "error=Échec de l'envoi : vérifiez l'URL du canal dans les journaux"
+    return RedirectResponse(f"/notifications?{flag}", status_code=303)
 
 
 PAGE_SIZE = 30
