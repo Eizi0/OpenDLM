@@ -23,7 +23,7 @@ INFO: dict[str, dict] = {
         "credit": N_("Data is licensed CC BY 4.0: Have I Been Pwned must stay credited."),
     },
     "hudson_rock": {
-        "kind": "domain", "key": "hudson_rock_key", "name": "Hudson Rock (Cavalier)",
+        "kind": "domain", "key": "hudson_rock_key", "name": "Hudson Rock (official API)",
         "site": "https://www.hudsonrock.com", "signup": "https://www.hudsonrock.com/free-api-key", "docs": "https://docs.hudsonrock.com",
         "cost": N_("Free key on request (reviewed by Hudson Rock, for development and testing); full access is commercial"),
         "desc": N_("Accounts of your domains stolen by infostealer malware. The most actionable signal: sessions may have been stolen too."),
@@ -32,9 +32,24 @@ INFO: dict[str, dict] = {
             N_("Wait for their team to review the request and send the key."),
             N_("Paste the key below and click Test connection: it checks the search-by-domain permission."),
             N_("If the permission is missing, ask Hudson Rock for the access level that includes it."),
+            N_("With a key, the free Hudson Rock source below switches itself off: the official API returns the affected addresses themselves."),
         ],
         "limits": N_("50 requests per 10 seconds, 20 infections per response."),
         "privacy": N_("Only the domain name is sent. No password, IP address or machine name is stored."),
+        "credit": None,
+    },
+    "hudson_rock_free": {
+        "kind": "mixed", "toggle": "hudson_rock_free_enabled", "name": "Hudson Rock (free tools)",
+        "site": "https://www.hudsonrock.com/free-tools", "signup": None, "docs": "https://www.hudsonrock.com/free-tools",
+        "cost": N_("Free, no key. Unofficial: Hudson Rock reserves its documented API for keys"),
+        "desc": N_("The keyless endpoints behind Hudson Rock's free tools. Counts the employee accounts of a domain found in infostealer logs, and checks each monitored address for an infection."),
+        "steps": [
+            N_("On by default. It does nothing for addresses until you list them on a domain page; the domain count needs no list."),
+            N_("When the official API key above is saved, this source switches itself off and the key takes over."),
+            N_("Its terms for automated use are not explicit: switch it off if that is not acceptable for you."),
+        ],
+        "limits": N_("No published limit: OpenDLM stays modest (a few dozen addresses per hour). The domain check gives a count only, not the addresses."),
+        "privacy": N_("The domain name is sent, and the monitored addresses in clear (there is no hash lookup). Computer names, IP addresses and masked logins in the answers are discarded."),
         "credit": None,
     },
     "leakcheck": {
@@ -81,6 +96,6 @@ INFO: dict[str, dict] = {
     },
 }
 
-ORDER = ["hibp", "hudson_rock", "leakcheck", "xposedornot", "ransomware_live"]
+ORDER = ["hibp", "hudson_rock", "hudson_rock_free", "leakcheck", "xposedornot", "ransomware_live"]
 KEYED = {cid: i["key"] for cid, i in INFO.items() if "key" in i}
 TOGGLED = {cid: i["toggle"] for cid, i in INFO.items() if "toggle" in i}

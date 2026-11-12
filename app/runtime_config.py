@@ -37,6 +37,7 @@ SPECS: dict[str, Spec] = {s.key: s for s in [
     Spec("hibp_api_key", "secret", "hibp"),
     Spec("hudson_rock_key", "secret", "hudson_rock"),
     Spec("ransomware_live_key", "secret", "ransomware_live"),
+    Spec("hudson_rock_free_enabled", "bool", "hudson_rock_free"),
     Spec("leakcheck_enabled", "bool", "leakcheck"),
     Spec("xposedornot_enabled", "bool", "xposedornot"),
     Spec("alert_min_severity", "choice", "alerts", choices=("low", "high", "critical")),

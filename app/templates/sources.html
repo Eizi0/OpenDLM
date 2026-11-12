@@ -17,7 +17,7 @@
       <div>
         <a href="{{ c.site }}" target="_blank" rel="noopener noreferrer" style="font-weight:700;color:var(--text)">{{ c.name }} ↗</a>
         <span class="pill {{ 'ok' if c.configured else '' }}" style="margin-left:6px">{{ (_("Key set") if c.configured else _("No key")) if c.has_key else (_("On") if c.configured else _("Off")) }}</span>
-        <span class="pill accent" style="margin-left:4px">{{ _("per address") if c.kind == "address" else _("per domain") if c.kind == "domain" else _("news") }}</span>
+        <span class="pill accent" style="margin-left:4px">{{ _("per address") if c.kind == "address" else _("per domain") if c.kind == "domain" else _("domain count + addresses") if c.kind == "mixed" else _("news") }}</span>
         {% if c.configured and c.origin == "env" %}<span class="pill accent">{{ _("from the environment") }}</span>{% endif %}
       </div>
       <div class="muted" style="font-size:13px;margin-top:4px">{{ c.desc }}</div>

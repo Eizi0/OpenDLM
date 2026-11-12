@@ -429,4 +429,13 @@ MESSAGES: dict[str, str] = {
     "news": "actus",
     "per address": "par adresse",
     "per domain": "par domaine",
+    "Free, no key. Unofficial: Hudson Rock reserves its documented API for keys": "Gratuit, sans clé. Non officiel : Hudson Rock réserve son API documentée aux clés",
+    "Its terms for automated use are not explicit: switch it off if that is not acceptable for you.": "Ses conditions pour un usage automatisé ne sont pas explicites : désactivez-la si cela ne vous convient pas.",
+    "No published limit: OpenDLM stays modest (a few dozen addresses per hour). The domain check gives a count only, not the addresses.": "Aucune limite publiée : OpenDLM reste modeste (quelques dizaines d'adresses par heure). La vérification du domaine donne un nombre seulement, pas les adresses.",
+    "On by default. It does nothing for addresses until you list them on a domain page; the domain count needs no list.": "Activée par défaut. Elle ne fait rien pour les adresses tant que vous ne les listez pas sur une page de domaine ; le comptage du domaine n'a pas besoin de liste.",
+    "The domain name is sent, and the monitored addresses in clear (there is no hash lookup). Computer names, IP addresses and masked logins in the answers are discarded.": "Le nom de domaine est envoyé, ainsi que les adresses surveillées en clair (il n'existe pas de recherche par hachage). Les noms d'ordinateur, adresses IP et identifiants masqués des réponses sont écartés.",
+    "The keyless endpoints behind Hudson Rock's free tools. Counts the employee accounts of a domain found in infostealer logs, and checks each monitored address for an infection.": "Les points d'accès sans clé derrière les outils gratuits de Hudson Rock. Compte les comptes d'employés d'un domaine trouvés dans des logs d'infostealers, et vérifie chaque adresse surveillée.",
+    "When the official API key above is saved, this source switches itself off and the key takes over.": "Quand la clé de l'API officielle ci-dessus est enregistrée, cette source se désactive d'elle-même et la clé prend le relais.",
+    "With a key, the free Hudson Rock source below switches itself off: the official API returns the affected addresses themselves.": "Avec une clé, la source Hudson Rock gratuite ci-dessous se désactive : l'API officielle renvoie les adresses touchées elles-mêmes.",
+    "domain count + addresses": "comptage du domaine + adresses",
 }

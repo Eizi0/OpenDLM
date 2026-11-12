@@ -55,7 +55,8 @@ Full guide, with costs, how to get access, limits and privacy impact: **[docs/co
 | Source | Works | Cost |
 |---|---|---|
 | [Have I Been Pwned](https://haveibeenpwned.com) | per domain | paid API key, domain verified |
-| [Hudson Rock](https://www.hudsonrock.com/free-api-key) | per domain (accounts stolen by infostealers) | free key on request, full access commercial |
+| [Hudson Rock, official API](https://www.hudsonrock.com/free-api-key) | per domain (accounts stolen by infostealers, with the addresses) | free key on request, full access commercial |
+| [Hudson Rock, free tools](https://www.hudsonrock.com/free-tools) | domain count + per monitored address (unofficial, on by default, replaced by the official key) | free, no key |
 | [LeakCheck](https://leakcheck.io) | per monitored address, **hashed** | free, no key |
 | [XposedOrNot](https://xposedornot.com) | per monitored address, sent in clear (opt-in) | free, no key, low volume |
 | [ransomware.live](https://www.ransomware.live) | news: ransomware claims | free PRO key |

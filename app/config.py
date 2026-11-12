@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     demo: bool = False
     hibp_api_key: str = ""
     notify_urls: str = ""  # comma-separated Apprise URLs
+    hudson_rock_free_enabled: bool = True  # keyless Hudson Rock tools; ignored once an official key is set
     leakcheck_enabled: bool = False  # per-address source: sends hashes of monitored addresses
     xposedornot_enabled: bool = False  # per-address source: sends monitored addresses
     hudson_rock_key: str = ""  # Hudson Rock (Cavalier v3) API key

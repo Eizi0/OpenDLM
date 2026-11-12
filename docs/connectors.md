@@ -6,7 +6,8 @@ shown next to a *Guide* disclosure, with links to the provider's website, the pa
 | Source | Works | Cost | Needs |
 |---|---|---|---|
 | [Have I Been Pwned](#have-i-been-pwned) | per domain | paid | API key + verified domain |
-| [Hudson Rock](#hudson-rock-cavalier) | per domain | free key on request, full access commercial | API key with `search-by-domain` |
+| [Hudson Rock, official API](#hudson-rock-official-api) | per domain | free key on request, full access commercial | API key with `search-by-domain` |
+| [Hudson Rock, free tools](#hudson-rock-free-tools) | domain count + per address | free (unofficial) | nothing, **on by default** |
 | [LeakCheck](#leakcheck) | per address | free | nothing (switch on) |
 | [XposedOrNot](#xposedornot) | per address | free | nothing (switch on) |
 | [ransomware.live](#ransomwarelive) | news | free | free PRO API key |
@@ -28,7 +29,7 @@ later discoveries alert you.
 - **Privacy:** only the domain name is sent.
 - **Attribution:** the data is licensed CC BY 4.0; Have I Been Pwned must stay credited (reports include the credit).
 
-## Hudson Rock (Cavalier)
+## Hudson Rock, official API
 
 - Website: https://www.hudsonrock.com — request a key: https://www.hudsonrock.com/free-api-key — docs: https://docs.hudsonrock.com
 - **Cost:** a free key is available on request for development and testing (the team reviews each request; a corporate e-mail address is required). Full access is commercial.
@@ -36,6 +37,17 @@ later discoveries alert you.
 - **Limits:** 50 requests per 10 seconds, 20 infections per response (the 20 most recent are read on each pass).
 - **Privacy:** only the domain name is sent. No password, IP address or machine name is stored.
 - A finding from this source is rated *critical*: changing the password is not enough, sessions may have been stolen.
+- **With a key, the free Hudson Rock source below switches itself off**: the official API returns the affected addresses themselves, so keeping both would only duplicate alerts.
+
+## Hudson Rock, free tools
+
+- Site: https://www.hudsonrock.com/free-tools
+- **Cost:** free, no key. **Unofficial**: these are the keyless endpoints behind Hudson Rock's free tools (open-source tools such as theHarvester use them too). Hudson Rock reserves its *documented* API for keys, and its terms for automated use are not explicit. Switch it off if that is not acceptable for you.
+- **On by default.** It gives two things:
+  - **a domain count**: how many employee accounts of your domain appear in infostealer logs. It is a number, not the addresses; each increase creates a new *critical* finding and an alert. Customer accounts are left out on purpose (that number grows daily on large sites and would only add noise);
+  - **a per-address check** for the addresses you list on a domain page: whether each one is linked to an infected computer, with the date of the infection.
+- **Limits:** no published limit; OpenDLM checks at most a few dozen addresses per hour.
+- **Privacy:** the domain name is sent, and the monitored addresses **in clear** (there is no hash lookup). The answers also contain computer names, partial IP addresses and masked logins and passwords of real people: OpenDLM discards all of it and keeps only the date and an anonymous machine id.
 
 ## LeakCheck
 
