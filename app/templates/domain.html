@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ domain.name }} · OpenDLM{% endblock %}
+{% block content %}
+<header style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;align-items:flex-start">
+  <div>
+    <div class="muted"><a href="/" style="color:var(--accent)">Tableau de bord</a> / Domaines</div>
+    <h1 class="mono" style="margin-top:8px;font-weight:500">{{ domain.name }}</h1>
+    <div style="margin-top:8px">
+      {% if domain.verified %}<span class="pill ok">Propriété vérifiée</span>{% else %}<span class="pill warn">Vérification requise</span>{% endif %}
+    </div>
+  </div>
+  {% if domain.verified %}
+  <form method="post" action="/domains/{{ domain.id }}/scan">
+    <button class="btn primary" type="submit" {% if not has_connectors %}disabled{% endif %}>Scanner maintenant</button>
+  </form>
+  {% endif %}
+</header>
+
+{% if not domain.verified %}
+<section class="card pad" style="display:flex;flex-direction:column;gap:14px">
+  <h2>Prouver la propriété du domaine</h2>
+  <div class="muted">Ajoutez cet enregistrement TXT à la zone DNS de {{ domain.name }}, puis lancez la vérification. Sans cette preuve, aucun scan n’est effectué.</div>
+  <div class="mono" style="padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--bg)">TXT @ &nbsp; {{ txt }}</div>
+  <form method="post" action="/domains/{{ domain.id }}/verify"><button class="btn primary" type="submit">Vérifier maintenant</button></form>
+</section>
+{% else %}
+
+{% if not has_connectors %}
+<div class="note">Aucun connecteur actif : activez le mode démo (<span class="mono">OPENDLM_DEMO=true</span>) ou renseignez une clé HIBP pour lancer un scan.</div>
+{% endif %}
+
+<section class="card">
+  <header><h2>Adresses touchées</h2><span class="muted">{{ findings | length }} au total</span></header>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Adresse</th><th>Fuite et source</th><th>Date</th><th>Données exposées</th><th>Gravité</th><th>Statut</th><th></th></tr></thead>
+    <tbody>
+    {% for f in findings %}
+      <tr class="{{ 'new' if f.status == 'new' else '' }}">
+        <td class="mono">{{ f.identifier }}</td>
+        <td><b>{{ f.breach }}</b><br><span class="muted">{{ f.source }}</span></td>
+        <td>{{ f.breach_date.strftime("%d/%m/%Y") if f.breach_date else "—" }}<br><span class="muted">vu le {{ f.first_seen.strftime("%d/%m/%Y") }}</span></td>
+        <td class="muted">{{ f.data_classes | join(", ") }}</td>
+        <td><span class="pill {{ f.severity }}">{{ severity_label.get(f.severity, f.severity) }}</span></td>
+        <td>{% if f.status == "new" %}<span class="pill bad">Nouvelle</span>{% elif f.status == "ack" %}<span class="pill ok">Acquittée</span>{% else %}<span class="pill">Connue</span>{% endif %}</td>
+        <td>{% if f.status == "new" %}<form method="post" action="/findings/{{ f.id }}/ack"><button class="btn small" type="submit">Acquitter</button></form>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="muted">Aucune fuite enregistrée. Lancez un premier scan : il crée la base de référence sans alerte.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="foot">Seuls l’adresse, le nom de la fuite, la date et les types de données sont conservés : jamais de mot de passe ni de contenu de fuite. Données HIBP sous licence CC BY 4.0.</div>
+</section>
+
+<section class="card">
+  <header><h2>Derniers scans</h2></header>
+  {% for r in runs %}
+  <div class="row">
+    <span style="flex:0 0 150px">{{ r.started_at.strftime("%d/%m/%Y %H:%M") }}</span>
+    <span style="flex:0 0 110px"><b>{{ r.source }}</b></span>
+    {% if not r.ok %}<span class="pill warn">Erreur</span><span class="muted">{{ r.error }}</span>
+    {% elif r.baseline %}<span class="pill">Base de référence</span>
+    {% elif r.new_count %}<span class="pill bad">{{ r.new_count }} nouvelle(s)</span>
+    {% else %}<span class="pill ok">Rien de nouveau</span>{% endif %}
+  </div>
+  {% else %}
+  <div class="pad muted">Aucun scan pour l’instant.</div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

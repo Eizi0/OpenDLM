@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block nav_home %}active{% endblock %}
+{% block content %}
+<header>
+  <h1>Tableau de bord</h1>
+  <div class="sub">Sources actives : {% if connectors %}{{ connectors | join(", ") }}{% else %}aucune (activer le mode démo ou renseigner une clé HIBP){% endif %}</div>
+</header>
+
+<section class="kpis">
+  <div class="kpi {% if totals.new %}alert{% endif %}"><span class="muted">Nouvelles fuites à traiter</span><b>{{ totals.new }}</b></div>
+  <div class="kpi"><span class="muted">Domaines suivis</span><b>{{ totals.domains }}</b></div>
+  <div class="kpi"><span class="muted">Fuites enregistrées</span><b>{{ totals.total }}</b></div>
+</section>
+
+<section class="card">
+  <header>
+    <h2>Surveillance</h2>
+    <form class="inline" method="post" action="/domains">
+      <input type="text" name="name" placeholder="exemple.fr" aria-label="Nom de domaine" required>
+      <button class="btn primary" type="submit">Ajouter un domaine</button>
+    </form>
+  </header>
+  {% for r in rows %}
+  <a class="row" href="/domains/{{ r.domain.id }}">
+    <div style="flex:1 1 220px">
+      <div class="mono"><b>{{ r.domain.name }}</b></div>
+      <div class="muted">
+        {% if r.domain.verified %}Propriété vérifiée{% else %}Vérification DNS requise{% endif %}
+        {% if r.last %} · dernier scan {{ r.last.started_at.strftime("%d/%m/%Y %H:%M") }}{% else %} · jamais scanné{% endif %}
+      </div>
+    </div>
+    <div>
+      {% if not r.domain.verified %}<span class="pill warn">À vérifier</span>
+      {% elif r.new %}<span class="pill bad">{{ r.new }} nouvelle(s)</span>
+      {% else %}<span class="pill ok">Rien de nouveau</span>{% endif %}
+    </div>
+    <div class="muted">{{ r.total }} fuite(s) enregistrée(s)</div>
+  </a>
+  {% else %}
+  <div class="pad muted">Aucun domaine pour l’instant. Ajoutez le premier ci-dessus.</div>
+  {% endfor %}
+</section>
+{% endblock %}
