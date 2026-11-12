@@ -11,9 +11,9 @@ your watched names appears in them.
 
 ## Demo
 
-<a href="docs/demo.mp4"><img src="docs/demo-poster.png" alt="OpenDLM demo video: sign-in, silent baseline, a new leak detected, news, reports, sources guide, settings" width="720"></a>
+https://github.com/user-attachments/assets/579667c6-dab9-46b4-a264-955c15493ce4
 
-*Click the image to watch the 70-second tour (recorded in demo mode with fictional leaks).*
+*A 70-second tour in demo mode (fictional leaks). The same video is in [docs/demo.mp4](docs/demo.mp4).*
 
 ## Principles
 
