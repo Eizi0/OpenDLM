@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Settings") }} · OpenDLM{% endblock %}
+{% block nav_settings %}active{% endblock %}
+{% block content %}
+<header>
+  <h1>{{ _("Settings") }}</h1>
+  <div class="sub">{{ _("Changes apply immediately. A value saved here takes precedence over the environment variable; reset a section to fall back to it.") }}</div>
+</header>
+
+{% macro origin(key) %}{% if origins[key] == "ui" %}<span class="pill accent">{{ _("set here") }}</span>{% elif origins[key] == "env" %}<span class="pill">{{ _("from the environment") }}</span>{% endif %}{% endmacro %}
+
+<section class="card">
+  <header><h2>{{ _("General") }}</h2></header>
+  <form method="post" action="/settings/general" class="stack pad" style="max-width:520px">
+    <label for="language">{{ _("Default language") }} {{ origin("language") }}</label>
+    <select id="language" name="language">{% for code, name in languages.items() %}<option value="{{ code }}" {% if v.language == code %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+    <div class="muted" style="font-size:12px">{{ _("Used for alerts and scheduled reports, and for users who did not pick a language.") }}</div>
+    <label for="timezone">{{ _("Timezone") }} {{ origin("timezone") }}</label>
+    <input type="text" id="timezone" name="timezone" list="zones" value="{{ v.timezone }}" required style="min-width:0;width:100%">
+    <datalist id="zones">{% for z in timezones %}<option value="{{ z }}">{% endfor %}</datalist>
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn primary" type="submit">{{ _("Save") }}</button></div>
+  </form>
+  <form method="post" action="/settings/general/reset" class="pad" style="padding-top:0"><button class="btn small" type="submit">{{ _("Reset to environment / default") }}</button></form>
+</section>
+
+<section class="card">
+  <header><h2>{{ _("Scans and reports") }}</h2></header>
+  <form method="post" action="/settings/scheduling" class="stack pad" style="max-width:520px">
+    <label for="scan_hour">{{ _("Daily scan hour") }} {{ origin("scan_hour") }}</label>
+    <input type="number" id="scan_hour" name="scan_hour" min="0" max="23" value="{{ v.scan_hour }}" required>
+    <label class="check"><input type="checkbox" name="report_daily" value="1" {% if v.report_daily %}checked{% endif %}> {{ _("Send a daily report") }} {{ origin("report_daily") }}</label>
+    <label class="check"><input type="checkbox" name="report_monthly" value="1" {% if v.report_monthly %}checked{% endif %}> {{ _("Send a monthly report") }} {{ origin("report_monthly") }}</label>
+    <label for="report_hour">{{ _("Report hour") }} {{ origin("report_hour") }}</label>
+    <input type="number" id="report_hour" name="report_hour" min="0" max="23" value="{{ v.report_hour }}" required>
+    <label class="check"><input type="checkbox" name="report_send_empty" value="1" {% if v.report_send_empty %}checked{% endif %}> {{ _("Also send an all-clear report (acts as a heartbeat)") }} {{ origin("report_send_empty") }}</label>
+    <div style="margin-top:10px"><button class="btn primary" type="submit">{{ _("Save") }}</button></div>
+  </form>
+  <form method="post" action="/settings/scheduling/reset" class="pad" style="padding-top:0"><button class="btn small" type="submit">{{ _("Reset to environment / default") }}</button></form>
+</section>
+
+<section class="card">
+  <header><h2>{{ _("Alerts") }}</h2></header>
+  <form method="post" action="/settings/alerts" class="stack pad" style="max-width:520px">
+    <label for="alert_min_severity">{{ _("Immediate alert threshold") }} {{ origin("alert_min_severity") }}</label>
+    <select id="alert_min_severity" name="alert_min_severity">
+      <option value="low" {% if v.alert_min_severity == "low" %}selected{% endif %}>{{ _("All leaks") }}</option>
+      <option value="high" {% if v.alert_min_severity == "high" %}selected{% endif %}>{{ _("High and critical") }}</option>
+      <option value="critical" {% if v.alert_min_severity == "critical" %}selected{% endif %}>{{ _("Critical only") }}</option>
+    </select>
+    <div class="muted" style="font-size:12px">{{ _("Anything below the threshold is not alerted immediately: it appears in the report.") }}</div>
+    <div style="margin-top:10px"><button class="btn primary" type="submit">{{ _("Save") }}</button></div>
+  </form>
+  <form method="post" action="/settings/alerts/reset" class="pad" style="padding-top:0"><button class="btn small" type="submit">{{ _("Reset to environment / default") }}</button></form>
+</section>
+
+<section class="card">
+  <header><h2>{{ _("News") }}</h2></header>
+  <form method="post" action="/settings/news" class="stack pad" style="max-width:520px">
+    <label for="news_interval_minutes">{{ _("Polling interval (minutes)") }} {{ origin("news_interval_minutes") }}</label>
+    <input type="number" id="news_interval_minutes" name="news_interval_minutes" min="5" max="1440" value="{{ v.news_interval_minutes }}" required>
+    <label for="news_retention_days">{{ _("Retention (days)") }} {{ origin("news_retention_days") }}</label>
+    <input type="number" id="news_retention_days" name="news_retention_days" min="1" max="3650" value="{{ v.news_retention_days }}" required>
+    <label class="check"><input type="checkbox" name="allow_private_feeds" value="1" {% if v.allow_private_feeds %}checked{% endif %}> {{ _("Allow feeds hosted on the internal network") }} {{ origin("allow_private_feeds") }}</label>
+    <div style="margin-top:10px"><button class="btn primary" type="submit">{{ _("Save") }}</button></div>
+  </form>
+  <form method="post" action="/settings/news/reset" class="pad" style="padding-top:0"><button class="btn small" type="submit">{{ _("Reset to environment / default") }}</button></form>
+</section>
+{% endblock %}

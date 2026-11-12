@@ -68,3 +68,6 @@ select{min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--
 .langs a.active{background:#1B2230;color:#fff;border-color:#3A4558}
 .side .langs{padding:10px 10px 0}
 .userbox a{color:var(--muted);font-weight:500}.userbox a.active{color:#fff}
+input[type=number]{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;width:140px}
+.stack select{width:100%}
+.check input[type=checkbox]{width:18px;height:18px}

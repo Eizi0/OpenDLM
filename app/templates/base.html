@@ -20,6 +20,7 @@
       {% if request.state.user.role == "admin" %}
       <a href="/sources" class="{% block nav_sources %}{% endblock %}">{{ _("Sources") }}</a>
       <a href="/notifications" class="{% block nav_notifications %}{% endblock %}">{{ _("Notifications") }}</a>
+      <a href="/settings" class="{% block nav_settings %}{% endblock %}">{{ _("Settings") }}</a>
       <a href="/users" class="{% block nav_users %}{% endblock %}">{{ _("Users") }}</a>
       {% endif %}
     </nav>

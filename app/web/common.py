@@ -57,6 +57,7 @@ FLASH = {
     "key_saved": N_("API key saved."),
     "key_removed": N_("API key removed."),
     "channel_added": N_("Channel added."),
+    "channel_deleted": N_("Channel deleted."),
     "channel_invalid": N_("Invalid name or notification URL."),
     "channel_duplicate": N_("A channel with this name already exists."),
     "conn_ok": N_("Connection successful."),

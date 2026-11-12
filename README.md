@@ -23,32 +23,30 @@ OPENDLM_DEMO=true docker compose up -d --build
 ```
 
 Open http://127.0.0.1:8080. On first run a page asks you to create the administrator account (password of at least
-12 characters). In demo mode a fake connector simulates a new leak from the second scan on (the news feed is real).
+12 characters). Then add your keys on the Sources page. In demo mode a fake connector simulates a new leak from the second scan on (the news feed is real).
 
 By default the app only listens on `127.0.0.1`. To open it to a network, put it behind an HTTPS reverse proxy
 (Traefik, Caddy, nginx) and set `OPENDLM_COOKIE_SECURE=true`.
 
 ## Configuration
 
-Settings are read from environment variables (see `.env.example`):
+Everything is configured **in the web interface**, by an administrator:
 
-| Variable | Purpose |
+| Page | What you set |
 |---|---|
-| `POSTGRES_PASSWORD` | PostgreSQL password |
-| `OPENDLM_DEMO` | `true` enables the fake demo connector |
-| `OPENDLM_HIBP_API_KEY` | Have I Been Pwned API key |
-| `OPENDLM_HUDSON_ROCK_KEY` | Hudson Rock API key (needs the `search-by-domain` permission) |
-| `OPENDLM_RANSOMWARE_LIVE_KEY` | ransomware.live PRO API key (free) |
-| `OPENDLM_NOTIFY_URLS` | Comma-separated [Apprise](https://github.com/caronc/apprise) URLs (Discord, ntfy, e-mail, Matrix…) |
-| `OPENDLM_NEWS_INTERVAL_MINUTES` / `OPENDLM_NEWS_RETENTION_DAYS` | News polling interval (default 30) and retention (default 90 days) |
-| `OPENDLM_ALLOW_PRIVATE_FEEDS` | `true` allows feeds hosted on your internal network |
-| `OPENDLM_REPORT_DAILY` / `OPENDLM_REPORT_MONTHLY` | Enable the daily and monthly reports (default `true`) |
-| `OPENDLM_REPORT_HOUR` | Hour the reports are sent (default 7) |
-| `OPENDLM_REPORT_SEND_EMPTY` | Also send an "all clear" report (a heartbeat, default `true`) |
-| `OPENDLM_ALERT_MIN_SEVERITY` | Immediate alert threshold: `low`, `high` or `critical` |
-| `OPENDLM_SCAN_HOUR` | Hour of the daily scan (default 6) |
-| `OPENDLM_TIMEZONE` | Timezone (default `Europe/Paris`) |
-| `OPENDLM_COOKIE_SECURE` | `true` behind an HTTPS proxy |
+| **Sources** | API key per connector (Have I Been Pwned, Hudson Rock, ransomware.live), with a *Test connection* button; RSS/Atom news feeds |
+| **Notifications** | Notification channels (any [Apprise](https://github.com/caronc/apprise) URL: Discord, ntfy, e-mail, Matrix...), with a per-channel test |
+| **Settings** | Default language, timezone, scan and report schedule, alert threshold, news polling and retention |
+| **Users** | Accounts and roles (administrator or read-only viewer) |
+
+Changes apply immediately, without restarting. API keys and channel URLs are **encrypted in the database**; the master key
+lives in the `/data` volume (or in `OPENDLM_SECRET_KEY`), never in the database. Back it up: without it, saved secrets cannot
+be decrypted.
+
+Every setting can also be given as an environment variable (see `.env.example`); a value saved in the interface takes
+precedence, and *Reset* on a settings section falls back to the environment.
+
+Each user can pick their own interface language (English or French) from the sidebar or their profile.
 
 ## Sources
 
@@ -69,7 +67,7 @@ complying with the terms of use of the sources they enable.
 ## Alerts and reports
 
 - **Immediate alert** as soon as a new leak is found (address, breach, source, date, kinds of data; never a password).
-  The severity threshold is set with `OPENDLM_ALERT_MIN_SEVERITY`; anything below it appears in the report.
+  The severity threshold is set in Settings; anything below it appears in the report.
 - **Daily report** (last 24 hours) and **monthly report** (previous calendar month), sent to your channels as Markdown,
   archived in the app, and exportable as HTML or Markdown. An "all clear" report is sent by default: its absence tells
   you the service stopped running.
@@ -79,7 +77,8 @@ complying with the terms of use of the sources they enable.
 - **Dashboard**: one bar per day over 60 days and per domain (green: fine, red: new leak, amber: partial scan). A banner
   warns when no scan ran for more than 26 hours while verified domains exist.
 - **Finding statuses**: new, acknowledged, resolved (reopenable). Findings from the baseline stay "known".
-- **Notifications page**: lists the channels (tokens are never displayed) and sends a test message.
+- **Notifications page**: manage channels (tokens are never displayed again) and send a test message.
+- **Roles**: administrators change everything; viewers are read-only and cannot open Sources, Notifications, Settings or Users.
 
 ## Development
 
