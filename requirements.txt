@@ -9,3 +9,4 @@ apprise>=1.9
 pydantic-settings>=2.4
 python-multipart>=0.0.9
 dnspython>=2.6
+alembic>=1.13

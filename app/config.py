@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     demo: bool = False
     hibp_api_key: str = ""
     notify_urls: str = ""  # URLs Apprise séparées par des virgules
+    scheduler_enabled: bool = True
     scan_hour: int = 6
     timezone: str = "Europe/Paris"
     user_agent: str = "OpenDLM/0.1 (self-hosted leak monitor)"

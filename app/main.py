@@ -10,10 +10,10 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
-from . import scheduler, verification
+from . import migrate, scheduler, verification
 from .config import settings
 from .connectors import build_connectors
-from .db import Base, SessionLocal, engine
+from .db import SessionLocal
 from .models import Domain, Finding, ScanRun
 from .notifier import SEVERITY_LABEL, Notifier
 from .scanner import run_scan
@@ -24,10 +24,11 @@ BASE = Path(__file__).parent
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(engine)
-    sched = scheduler.start()
+    migrate.upgrade()
+    sched = scheduler.start() if settings.scheduler_enabled else None
     yield
-    sched.shutdown(wait=False)
+    if sched:
+        sched.shutdown(wait=False)
 
 
 app = FastAPI(title="OpenDLM", lifespan=lifespan)
