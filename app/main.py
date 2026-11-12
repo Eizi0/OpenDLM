@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -13,10 +13,20 @@ from sqlalchemy.orm import Session
 from . import migrate, scheduler, verification
 from .config import settings
 from .connectors import build_connectors
-from .db import SessionLocal
-from .models import Domain, Finding, ScanRun
+from .deps import LoginRequired, get_session, has_users, require_user
+from .models import Domain, Finding, ScanRun, User
 from .notifier import SEVERITY_LABEL, Notifier
 from .scanner import run_scan
+from .security import (
+    SESSION_COOKIE,
+    SESSION_MAX_AGE,
+    LoginThrottle,
+    authenticate,
+    get_secret,
+    hash_password,
+    make_session_token,
+    password_problem,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 BASE = Path(__file__).parent
@@ -35,11 +45,12 @@ app = FastAPI(title="OpenDLM", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
 templates.env.globals.update(severity_label=SEVERITY_LABEL, demo=settings.demo)
+throttle = LoginThrottle()
 
 
 @app.middleware("http")
 async def same_origin_for_writes(request: Request, call_next):
-    """Refuse les POST venant d'un autre site (pas d'authentification pour l'instant)."""
+    """Refuse les POST venant d'un autre site (en plus du cookie SameSite=Lax)."""
     if request.method == "POST":
         origin = request.headers.get("origin")
         if origin and urlparse(origin).netloc != request.headers.get("host"):
@@ -47,9 +58,120 @@ async def same_origin_for_writes(request: Request, call_next):
     return await call_next(request)
 
 
-def get_session():
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "same-origin")
+    response.headers.setdefault("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; form-action 'self'")
+    return response
+
+
+@app.exception_handler(LoginRequired)
+async def login_required_handler(request: Request, _: LoginRequired):
+    from .db import SessionLocal
+
     with SessionLocal() as session:
-        yield session
+        target = "/login" if has_users(session) else "/setup"
+    return RedirectResponse(target, status_code=303)
+
+
+def _set_session_cookie(response: RedirectResponse, user: User, session: Session) -> None:
+    response.set_cookie(
+        SESSION_COOKIE,
+        make_session_token(user, get_secret(session)),
+        max_age=SESSION_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+        secure=settings.cookie_secure,
+    )
+
+
+# --- Pages publiques ---------------------------------------------------------
+
+
+@app.get("/healthz")
+def healthz(session: Session = Depends(get_session)):
+    session.execute(text("SELECT 1"))
+    return {"status": "ok"}
+
+
+@app.get("/setup")
+def setup_page(request: Request, session: Session = Depends(get_session)):
+    if has_users(session):
+        return RedirectResponse("/login", status_code=303)
+    return templates.TemplateResponse(request, "setup.html", {"error": None})
+
+
+@app.post("/setup")
+def setup_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    confirm: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    if has_users(session):
+        raise HTTPException(403, "Le compte administrateur existe déjà")
+    username = username.strip().lower()
+    error = None
+    if not (3 <= len(username) <= 64) or not username.replace("-", "").replace("_", "").replace(".", "").isalnum():
+        error = "Nom d'utilisateur invalide (3 à 64 caractères : lettres, chiffres, - _ .)."
+    elif password != confirm:
+        error = "Les deux mots de passe ne correspondent pas."
+    else:
+        error = password_problem(password)
+    if error:
+        return templates.TemplateResponse(request, "setup.html", {"error": error}, status_code=422)
+    user = User(username=username, password_hash=hash_password(password))
+    session.add(user)
+    session.commit()
+    response = RedirectResponse("/", status_code=303)
+    _set_session_cookie(response, user, session)
+    return response
+
+
+@app.get("/login")
+def login_page(request: Request, session: Session = Depends(get_session)):
+    if not has_users(session):
+        return RedirectResponse("/setup", status_code=303)
+    return templates.TemplateResponse(request, "login.html", {"error": None})
+
+
+@app.post("/login")
+def login_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    key = request.client.host if request.client else "inconnu"
+    wait = throttle.retry_after(key)
+    if wait:
+        return templates.TemplateResponse(
+            request, "login.html", {"error": f"Trop d'essais. Réessayez dans {wait} s."}, status_code=429
+        )
+    user = authenticate(session, username, password)
+    if user is None:
+        throttle.fail(key)
+        return templates.TemplateResponse(request, "login.html", {"error": "Identifiants incorrects."}, status_code=401)
+    throttle.reset(key)
+    response = RedirectResponse("/", status_code=303)
+    _set_session_cookie(response, user, session)
+    return response
+
+
+@app.post("/logout")
+def logout():
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(SESSION_COOKIE)
+    return response
+
+
+# --- Pages protégées ---------------------------------------------------------
+
+router = APIRouter(dependencies=[Depends(require_user)])
 
 
 def _domain_or_404(session: Session, domain_id: int) -> Domain:
@@ -59,13 +181,7 @@ def _domain_or_404(session: Session, domain_id: int) -> Domain:
     return domain
 
 
-@app.get("/healthz")
-def healthz(session: Session = Depends(get_session)):
-    session.execute(text("SELECT 1"))
-    return {"status": "ok"}
-
-
-@app.get("/")
+@router.get("/")
 def dashboard(request: Request, session: Session = Depends(get_session)):
     rows = []
     for d in session.scalars(select(Domain).order_by(Domain.name)):
@@ -82,7 +198,7 @@ def dashboard(request: Request, session: Session = Depends(get_session)):
     return templates.TemplateResponse(request, "dashboard.html", {"rows": rows, "totals": totals, "connectors": connectors})
 
 
-@app.post("/domains")
+@router.post("/domains")
 def add_domain(name: str = Form(...), session: Session = Depends(get_session)):
     normalized = verification.normalize_domain(name)
     if normalized is None:
@@ -95,7 +211,7 @@ def add_domain(name: str = Form(...), session: Session = Depends(get_session)):
     return RedirectResponse(f"/domains/{domain.id}", status_code=303)
 
 
-@app.get("/domains/{domain_id}")
+@router.get("/domains/{domain_id}")
 def domain_detail(request: Request, domain_id: int, session: Session = Depends(get_session)):
     domain = _domain_or_404(session, domain_id)
     findings = session.scalars(
@@ -109,7 +225,7 @@ def domain_detail(request: Request, domain_id: int, session: Session = Depends(g
     )
 
 
-@app.post("/domains/{domain_id}/verify")
+@router.post("/domains/{domain_id}/verify")
 def verify_domain(domain_id: int, session: Session = Depends(get_session)):
     domain = _domain_or_404(session, domain_id)
     if verification.check_dns_txt(domain.name, domain.verify_token):
@@ -118,7 +234,7 @@ def verify_domain(domain_id: int, session: Session = Depends(get_session)):
     return RedirectResponse(f"/domains/{domain.id}", status_code=303)
 
 
-@app.post("/domains/{domain_id}/scan")
+@router.post("/domains/{domain_id}/scan")
 def scan_domain(domain_id: int, session: Session = Depends(get_session)):
     domain = _domain_or_404(session, domain_id)
     connectors = build_connectors()
@@ -131,7 +247,7 @@ def scan_domain(domain_id: int, session: Session = Depends(get_session)):
     return RedirectResponse(f"/domains/{domain.id}", status_code=303)
 
 
-@app.post("/findings/{finding_id}/ack")
+@router.post("/findings/{finding_id}/ack")
 def ack_finding(finding_id: int, session: Session = Depends(get_session)):
     finding = session.get(Finding, finding_id)
     if finding is None:
@@ -139,3 +255,6 @@ def ack_finding(finding_id: int, session: Session = Depends(get_session)):
     finding.status = "ack"
     session.commit()
     return RedirectResponse(f"/domains/{finding.domain_id}", status_code=303)
+
+
+app.include_router(router)

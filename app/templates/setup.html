@@ -1,0 +1,16 @@
+{% extends "auth_base.html" %}
+{% block title %}Première configuration · OpenDLM{% endblock %}
+{% block content %}
+<h1 style="font-size:22px">Créer le compte administrateur</h1>
+<div class="muted" style="margin-bottom:14px">Première utilisation : choisissez un nom d’utilisateur et un mot de passe d’au moins 12 caractères. Cette page disparaît une fois le compte créé.</div>
+{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+<form method="post" action="/setup" class="stack">
+  <label for="username">Nom d’utilisateur</label>
+  <input type="text" id="username" name="username" autocomplete="username" autofocus required>
+  <label for="password">Mot de passe</label>
+  <input type="password" id="password" name="password" autocomplete="new-password" minlength="12" required>
+  <label for="confirm">Confirmer le mot de passe</label>
+  <input type="password" id="confirm" name="confirm" autocomplete="new-password" minlength="12" required>
+  <button class="btn primary" type="submit" style="justify-content:center">Créer le compte</button>
+</form>
+{% endblock %}

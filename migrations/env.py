@@ -2,19 +2,17 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from app import models  # noqa: F401  (enregistre les tables dans Base.metadata)
-from app.config import settings
 from app.db import Base
+from app.db import engine as app_engine
 
 config = context.config
 target_metadata = Base.metadata
 
 
-def _url() -> str:
-    return config.attributes.get("url") or settings.database_url
-
-
 def run_migrations_online() -> None:
-    engine = create_engine(_url(), poolclass=pool.NullPool)
+    url = config.attributes.get("url")
+    # Sans URL explicite : moteur de l'application (indispensable pour la base SQLite en mémoire des tests).
+    engine = create_engine(url, poolclass=pool.NullPool) if url else app_engine
     with engine.connect() as connection:
         context.configure(
             connection=connection,

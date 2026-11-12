@@ -18,6 +18,12 @@
     </nav>
     <div style="flex:1"></div>
     {% if demo %}<div class="pill warn">Mode démo : données fictives</div>{% endif %}
+    {% if request.state.user %}
+    <form method="post" action="/logout" class="userbox">
+      <span class="muted">{{ request.state.user.username }}</span>
+      <button class="btn small" type="submit">Déconnexion</button>
+    </form>
+    {% endif %}
   </aside>
   <main class="main">
     {% block content %}{% endblock %}

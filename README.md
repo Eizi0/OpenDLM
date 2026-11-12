@@ -18,7 +18,9 @@ OPENDLM_DEMO=true docker compose up -d --build
 
 L'interface est disponible sur http://127.0.0.1:8080. En mode démo, un connecteur fictif simule une nouvelle fuite dès le deuxième scan.
 
-> L'application n'a pas encore d'authentification : elle n'écoute que sur `127.0.0.1`. Ne l'exposez pas telle quelle sur un réseau.
+Au premier lancement, ouvrez l'interface : une page vous demande de créer le compte administrateur (mot de passe d'au moins 12 caractères). Les mots de passe sont hachés avec scrypt, les sessions sont signées, et les tentatives de connexion répétées sont bloquées temporairement.
+
+Par défaut l'application n'écoute que sur `127.0.0.1`. Pour l'ouvrir au réseau, placez-la derrière un proxy HTTPS (Traefik, Caddy, nginx) et activez `OPENDLM_COOKIE_SECURE=true`.
 
 ## Configuration
 
@@ -32,6 +34,7 @@ Variables d'environnement (voir `.env.example`) :
 | `OPENDLM_NOTIFY_URLS` | URLs [Apprise](https://github.com/caronc/apprise), séparées par des virgules (Discord, ntfy, e-mail, Matrix…) |
 | `OPENDLM_SCAN_HOUR` | Heure du scan quotidien (défaut 6) |
 | `OPENDLM_TIMEZONE` | Fuseau horaire (défaut `Europe/Paris`) |
+| `OPENDLM_COOKIE_SECURE` | `true` derrière un proxy HTTPS |
 
 ## Sources
 

@@ -1,0 +1,13 @@
+{% extends "auth_base.html" %}
+{% block title %}Connexion · OpenDLM{% endblock %}
+{% block content %}
+<h1 style="font-size:22px">Connexion</h1>
+{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+<form method="post" action="/login" class="stack">
+  <label for="username">Nom d’utilisateur</label>
+  <input type="text" id="username" name="username" autocomplete="username" autofocus required>
+  <label for="password">Mot de passe</label>
+  <input type="password" id="password" name="password" autocomplete="current-password" required>
+  <button class="btn primary" type="submit" style="justify-content:center">Se connecter</button>
+</form>
+{% endblock %}

@@ -27,7 +27,8 @@ services:
       OPENDLM_NOTIFY_URLS: ${OPENDLM_NOTIFY_URLS:-}
       OPENDLM_SCAN_HOUR: ${OPENDLM_SCAN_HOUR:-6}
       OPENDLM_TIMEZONE: ${OPENDLM_TIMEZONE:-Europe/Paris}
-    # Pas d'authentification pour l'instant : n'exposer que sur la machine locale.
+      OPENDLM_COOKIE_SECURE: ${OPENDLM_COOKIE_SECURE:-false}
+    # Écoute locale uniquement ; pour l'exposer, passer par un proxy HTTPS.
     ports:
       - "127.0.0.1:8080:8080"
 
