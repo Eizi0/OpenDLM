@@ -13,3 +13,5 @@ alembic>=1.13
 itsdangerous>=2.2
 defusedxml>=0.7
 cryptography>=43
+pyotp>=2.9
+segno>=1.6

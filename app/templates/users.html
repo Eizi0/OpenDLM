@@ -11,7 +11,7 @@
   <header><h2>{{ _("Accounts") }}</h2></header>
   <div class="scroll">
   <table>
-    <thead><tr><th>{{ _("Username") }}</th><th>{{ _("Role") }}</th><th>{{ _("Created") }}</th><th></th></tr></thead>
+    <thead><tr><th>{{ _("Username") }}</th><th>{{ _("Role") }}</th><th>{{ _("Two-factor") }}</th><th>{{ _("Created") }}</th><th></th></tr></thead>
     <tbody>
     {% for u in users %}
       <tr>
@@ -24,6 +24,9 @@
             <button class="btn small" type="submit">{{ _("Save") }}</button>
           </form>
         </td>
+        <td>{% if u.totp_enabled %}<span class="pill ok">{{ _("Enabled") }}</span>
+          <form method="post" action="/users/{{ u.id }}/2fa/reset" style="margin-top:6px"><button class="btn small" type="submit">{{ _("Reset 2FA") }}</button></form>
+          {% else %}<span class="pill">{{ _("Disabled") }}</span>{% endif %}</td>
         <td class="muted">{{ u.created_at | local("date") }}</td>
         <td>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">

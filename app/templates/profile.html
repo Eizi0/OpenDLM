@@ -27,4 +27,40 @@
     <button class="btn primary" type="submit" style="justify-content:center;align-self:flex-start">{{ _("Change password") }}</button>
   </form>
 </section>
+
+<section class="card">
+  <header><h2>{{ _("Two-factor authentication") }}</h2>
+    {% if me.totp_enabled %}<span class="pill ok">{{ _("Enabled") }}</span>{% else %}<span class="pill">{{ _("Disabled") }}</span>{% endif %}
+  </header>
+  {% if me.totp_enabled %}
+  <div class="pad" style="display:flex;flex-direction:column;gap:14px">
+    <div class="muted">{{ _("%(n)d recovery code(s) left.", n=recovery_left) }}</div>
+    <form method="post" action="/profile/2fa/recovery" class="inline">
+      <input type="password" name="password" placeholder="{{ _('Current password') }}" aria-label="{{ _('Current password') }}" autocomplete="current-password" required style="min-width:0;flex:1 1 200px;width:auto">
+      <button class="btn" type="submit">{{ _("Generate new recovery codes") }}</button>
+    </form>
+    <form method="post" action="/profile/2fa/disable" class="inline">
+      <input type="password" name="password" placeholder="{{ _('Current password') }}" aria-label="{{ _('Current password') }}" autocomplete="current-password" required style="min-width:0;flex:1 1 200px;width:auto">
+      <button class="btn" type="submit">{{ _("Disable two-factor authentication") }}</button>
+    </form>
+  </div>
+  {% elif setup %}
+  <div class="pad" style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+    <div style="background:#fff;padding:8px;border-radius:12px;line-height:0">{{ setup.qr | safe }}</div>
+    <div style="flex:1 1 280px;display:flex;flex-direction:column;gap:12px">
+      <div>{{ _("Scan the QR code with an authenticator app (Aegis, 2FAS, Google Authenticator...), or enter this key manually:") }}</div>
+      <div class="mono" style="padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);word-break:break-all">{{ setup.secret }}</div>
+      <form method="post" action="/profile/2fa/enable" class="inline">
+        <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="{{ _('6-digit code') }}" aria-label="{{ _('6-digit code') }}" maxlength="8" required style="min-width:0;flex:1 1 140px">
+        <button class="btn primary" type="submit">{{ _("Confirm and enable") }}</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="pad" style="display:flex;flex-direction:column;gap:12px">
+    <div class="muted">{{ _("Add a second step at sign-in with a code from an authenticator app.") }}</div>
+    <form method="post" action="/profile/2fa/start"><button class="btn primary" type="submit">{{ _("Set up two-factor authentication") }}</button></form>
+  </div>
+  {% endif %}
+</section>
 {% endblock %}

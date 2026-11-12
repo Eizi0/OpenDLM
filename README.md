@@ -78,6 +78,7 @@ complying with the terms of use of the sources they enable.
   warns when no scan ran for more than 26 hours while verified domains exist.
 - **Finding statuses**: new, acknowledged, resolved (reopenable). Findings from the baseline stay "known".
 - **Notifications page**: manage channels (tokens are never displayed again) and send a test message.
+- **Two-factor authentication** (TOTP): each user can enable it from their profile, with a QR code, single-use recovery codes, protection against code replay, and an administrator reset for someone locked out.
 - **Roles**: administrators change everything; viewers are read-only and cannot open Sources, Notifications, Settings or Users.
 
 ## Development

@@ -75,6 +75,7 @@ FLASH = {
     "last_admin": N_("You cannot remove or demote the last administrator."),
     "twofa_enabled": N_("Two-factor authentication enabled."),
     "twofa_disabled": N_("Two-factor authentication disabled."),
+    "twofa_reset": N_("Two-factor authentication reset for this user."),
     "twofa_bad_code": N_("Invalid code. Try again."),
     "token_created": N_("API token created. Copy it now: it is shown only once."),
 }

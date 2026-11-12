@@ -10,6 +10,7 @@ from ..config import settings
 from ..deps import get_session, has_users
 from ..i18n import LANGUAGES, t
 from ..models import User
+from .. import twofa
 from ..security import (
     SESSION_COOKIE,
     SESSION_MAX_AGE,
@@ -99,8 +100,40 @@ def login_submit(
         throttle.fail(key)
         return render(request, "login.html", {"error": t("Incorrect username or password.")}, status_code=401)
     throttle.reset(key)
+    if user.totp_enabled:
+        # Password accepted but no session yet: the second factor is required.
+        response = RedirectResponse("/login/2fa", status_code=303)
+        response.set_cookie(twofa.PENDING_COOKIE, twofa.make_pending_token(user), max_age=twofa.PENDING_MAX_AGE, httponly=True, samesite="lax", secure=settings.cookie_secure)
+        return response
     response = RedirectResponse("/", status_code=303)
     set_session_cookie(response, user, session)
+    return response
+
+
+@router.get("/login/2fa")
+def twofa_page(request: Request, session: Session = Depends(get_session)):
+    if twofa.user_from_pending(session, request.cookies.get(twofa.PENDING_COOKIE)) is None:
+        return RedirectResponse("/login", status_code=303)
+    return render(request, "login_2fa.html", {"error": None})
+
+
+@router.post("/login/2fa")
+def twofa_submit(request: Request, code: str = Form(...), session: Session = Depends(get_session)):
+    user = twofa.user_from_pending(session, request.cookies.get(twofa.PENDING_COOKIE))
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+    key = f"2fa:{user.id}:{request.client.host if request.client else 'unknown'}"
+    wait = throttle.retry_after(key)
+    if wait:
+        return render(request, "login_2fa.html", {"error": t("Too many attempts. Try again in %(s)d s.", s=wait)}, status_code=429)
+    if not (twofa.verify_code(user, code) or twofa.use_recovery_code(user, code)):
+        throttle.fail(key)
+        return render(request, "login_2fa.html", {"error": t("Invalid code. Try again.")}, status_code=401)
+    session.commit()  # persists the used time step or the consumed recovery code
+    throttle.reset(key)
+    response = RedirectResponse("/", status_code=303)
+    set_session_cookie(response, user, session)
+    response.delete_cookie(twofa.PENDING_COOKIE)
     return response
 
 

@@ -19,6 +19,11 @@ class User(Base):
     # admin: full access. viewer: read-only (existing accounts become admins when the column is added).
     role: Mapped[str] = mapped_column(String(16), default="viewer", server_default="admin")
     language: Mapped[str | None] = mapped_column(String(8), nullable=True)  # None: use the instance default
+    # Two-factor authentication (TOTP). The secret is encrypted; recovery codes are stored as hashes.
+    totp_secret_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    totp_last_step: Mapped[int | None] = mapped_column(Integer, nullable=True)  # blocks replaying a code
+    recovery_hashes: Mapped[list | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

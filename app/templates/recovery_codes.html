@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Recovery codes") }} · OpenDLM{% endblock %}
+{% block nav_profile %}active{% endblock %}
+{% block content %}
+<header>
+  <h1>{{ _("Recovery codes") }}</h1>
+  <div class="sub">{{ _("Save these codes somewhere safe. Each one can be used once if you lose your authenticator. They are shown only now.") }}</div>
+</header>
+<section class="card pad">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+    {% for c in codes %}<div class="mono" style="padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:15px">{{ c }}</div>{% endfor %}
+  </div>
+  <div style="margin-top:18px"><a class="btn primary" href="/profile">{{ _("I have saved them") }}</a></div>
+</section>
+{% endblock %}
