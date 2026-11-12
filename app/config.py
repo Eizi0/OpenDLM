@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     demo: bool = False
     hibp_api_key: str = ""
     notify_urls: str = ""  # URLs Apprise séparées par des virgules
+    ransomware_live_key: str = ""  # clé API PRO de ransomware.live (gratuite)
+    news_interval_minutes: int = 30
+    news_retention_days: int = 90
+    allow_private_feeds: bool = False  # autorise les flux sur le réseau interne
     scheduler_enabled: bool = True
     cookie_secure: bool = False  # true derrière un proxy HTTPS
     scan_hour: int = 6

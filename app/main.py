@@ -10,9 +10,10 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
-from . import migrate, scheduler, verification
+from . import migrate, news, scheduler, verification
 from .config import settings
 from .connectors import build_connectors
+from .db import SessionLocal
 from .deps import LoginRequired, get_session, has_users, require_user
 from .models import Domain, Finding, ScanRun, User
 from .notifier import SEVERITY_LABEL, Notifier
@@ -35,6 +36,8 @@ BASE = Path(__file__).parent
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     migrate.upgrade()
+    with SessionLocal() as session:
+        news.seed_default_sources(session)
     sched = scheduler.start() if settings.scheduler_enabled else None
     yield
     if sched:
@@ -70,8 +73,6 @@ async def security_headers(request: Request, call_next):
 
 @app.exception_handler(LoginRequired)
 async def login_required_handler(request: Request, _: LoginRequired):
-    from .db import SessionLocal
-
     with SessionLocal() as session:
         target = "/login" if has_users(session) else "/setup"
     return RedirectResponse(target, status_code=303)

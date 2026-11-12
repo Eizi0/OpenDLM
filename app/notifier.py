@@ -29,13 +29,16 @@ class Notifier:
 
     def alert(self, domain: str, findings: list[Finding]) -> bool:
         title, body = format_alert(domain, findings)
+        return self.send(title, body)
+
+    def send(self, title: str, body: str) -> bool:
         if not self._urls:
-            log.info("Aucun canal configuré. Alerte : %s\n%s", title, body)
+            log.info("Aucun canal configuré. Message : %s\n%s", title, body)
             return False
         ap = apprise.Apprise()
         for url in self._urls:
             ap.add(url)
         ok = ap.notify(title=title, body=body)
         if not ok:
-            log.error("Échec de l'envoi de l'alerte pour %s", domain)
+            log.error("Échec de l'envoi : %s", title)
         return bool(ok)

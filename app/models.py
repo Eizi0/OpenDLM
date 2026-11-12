@@ -62,6 +62,58 @@ class Finding(Base):
     domain: Mapped[Domain] = relationship(back_populates="findings")
 
 
+class NewsSource(Base):
+    """Source d'actus : flux RSS/Atom ou API ransomware.live."""
+
+    __tablename__ = "news_sources"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True)
+    kind: Mapped[str] = mapped_column(String(24))  # rss | ransomware_live
+    url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    builtin: Mapped[bool] = mapped_column(Boolean, default=False)
+    baselined: Mapped[bool] = mapped_column(Boolean, default=False)
+    etag: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    last_modified: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    last_fetch_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    items: Mapped[list["NewsItem"]] = relationship(back_populates="source", cascade="all, delete-orphan")
+
+
+class NewsItem(Base):
+    """Titre, extrait et lien d'une annonce. Le contenu complet des articles n'est jamais conservé."""
+
+    __tablename__ = "news_items"
+    __table_args__ = (UniqueConstraint("source_id", "guid"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_id: Mapped[int] = mapped_column(ForeignKey("news_sources.id", ondelete="CASCADE"))
+    guid: Mapped[str] = mapped_column(String(512))
+    title: Mapped[str] = mapped_column(String(300))
+    url: Mapped[str] = mapped_column(String(1000))
+    excerpt: Mapped[str] = mapped_column(Text, default="")
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    reliability: Mapped[str | None] = mapped_column(String(16), nullable=True)  # confirmed | credible | claimed | unreliable
+    matched: Mapped[list] = mapped_column(JSON, default=list)
+    first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    notified: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    source: Mapped[NewsSource] = relationship(back_populates="items")
+
+
+class WatchWord(Base):
+    """Nom surveillé dans les actus (entreprise, fournisseur, marque…)."""
+
+    __tablename__ = "watch_words"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    term: Mapped[str] = mapped_column(String(120), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class ScanRun(Base):
     __tablename__ = "scan_runs"
 
