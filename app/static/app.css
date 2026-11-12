@@ -126,3 +126,8 @@ body.auth{background:var(--bg)}
   .auth-brand img{width:64px;height:64px}.auth-brand h1{font-size:26px}.auth-points{display:none}
   .auth-panel{padding:20px 22px}
 }
+.news-title a{color:var(--text)}
+.news-title a:hover,a.ext:hover{text-decoration:underline;text-underline-offset:3px}
+a.ext{color:var(--text)}
+.readmore{color:var(--accent);border-color:#3A3A66;background:#141A23}
+.readmore:hover{background:#1B1B33}

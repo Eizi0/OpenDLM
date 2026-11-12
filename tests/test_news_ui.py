@@ -79,3 +79,31 @@ def test_dashboard_shows_recent_mentions(logged_client):
     add_items(("Piratage Ciblex", ["Ciblex"], "credible"))
     page = logged_client.get("/")
     assert "News that concerns you" in page.text and "Piratage Ciblex" in page.text
+
+
+def test_every_news_item_links_out_to_its_article(logged_client):
+    add_items(("Fuite Ciblex", ["Ciblex"], "credible"))
+    with SessionLocal() as s:
+        src = s.query(NewsSource).filter_by(name="FrenchBreaches").one()
+        s.add(NewsItem(source_id=src.id, guid="nolink", title="Sans lien", url="", excerpt="", published_at=utcnow(), matched=[], notified=True))
+        s.add(NewsItem(source_id=src.id, guid="bad", title="Lien piégé", url="javascript:alert(1)", excerpt="", published_at=utcnow(), matched=[], notified=True))
+        s.commit()
+    page = logged_client.get("/news").text
+    assert 'class="btn small readmore" href="https://exemple.fr/0"' in page and "Read the article · exemple.fr ↗" in page
+    # external links open in a new tab and never leak the referrer or the opener
+    assert page.count('rel="noopener noreferrer nofollow" target="_blank"') >= 2
+    assert "Sans lien" in page and "Lien piégé" in page  # shown as plain titles
+    assert "javascript:" not in page and page.count("Read the article") >= 1
+    assert page.count('class="btn small readmore"') == 1  # only the item with a real link gets the button
+
+
+def test_dashboard_mentions_link_out_too(logged_client):
+    add_items(("Piratage Ciblex", ["Ciblex"], "credible"))
+    page = logged_client.get("/").text
+    assert 'class="ext" href="https://exemple.fr/0"' in page and "Piratage Ciblex ↗" in page
+
+
+def test_read_the_article_in_french(logged_client):
+    add_items(("Fuite Ciblex", ["Ciblex"], "credible"))
+    logged_client.get("/lang/fr")
+    assert "Lire l’article" in logged_client.get("/news").text

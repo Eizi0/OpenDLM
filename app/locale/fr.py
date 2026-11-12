@@ -467,4 +467,5 @@ MESSAGES: dict[str, str] = {
     "Verifying…": "Vérification…",
     "Weak": "Faible",
     "Welcome back": "Bon retour",
+    "Read the article": "Lire l’article",
 }

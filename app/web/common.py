@@ -23,7 +23,16 @@ def _local(value, style: str = "datetime") -> str:
     return fmt_datetime(value, cfg.timezone) if style == "datetime" else fmt_date(value, cfg.timezone)
 
 
+def _host(url: str | None) -> str:
+    """Site name of a link, without www: shown next to "Read the article"."""
+    from urllib.parse import urlparse
+
+    netloc = urlparse(url or "").netloc.lower()
+    return netloc[4:] if netloc.startswith("www.") else netloc
+
+
 templates.env.filters["local"] = _local
+templates.env.filters["host"] = _host
 templates.env.globals.update(
     _=t,
     severity_label=severity_label,

@@ -56,7 +56,7 @@
   {% for it in mentions[:5] %}
   <div class="row">
     <span class="pill accent">{{ it.matched | join(", ") }}</span>
-    <a href="{{ it.url }}" rel="noopener noreferrer nofollow" target="_blank" style="flex:1 1 300px;font-weight:500">{{ it.title }}</a>
+    {% if it.url.startswith("http") %}<a class="ext" href="{{ it.url }}" rel="noopener noreferrer nofollow" target="_blank" style="flex:1 1 300px;font-weight:500" title="{{ _('Read the article') }} · {{ it.url | host }}">{{ it.title }} ↗</a>{% else %}<b style="flex:1 1 300px">{{ it.title }}</b>{% endif %}
     <span class="muted">{{ it.source.name }} · {{ it.published_at | local("date") }}</span>
   </div>
   {% endfor %}

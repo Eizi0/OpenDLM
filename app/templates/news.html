@@ -20,7 +20,7 @@
   {% for it in recent_mentions %}
   <div style="padding:8px 0;border-top:1px solid #3A3A66">
     <span class="pill accent">{{ it.matched | join(", ") }}</span>
-    <a href="{{ it.url }}" rel="noopener noreferrer nofollow" target="_blank" style="font-weight:500;margin-left:6px">{{ it.title }}</a>
+    {% if it.url.startswith("http") %}<a class="ext" href="{{ it.url }}" rel="noopener noreferrer nofollow" target="_blank" style="font-weight:500;margin-left:6px" title="{{ _('Read the article') }} · {{ it.url | host }}">{{ it.title }} ↗</a>{% else %}<b style="margin-left:6px">{{ it.title }}</b>{% endif %}
     <span class="muted"> · {{ it.source.name }} · {{ it.published_at | local("date") }}</span>
   </div>
   {% endfor %}
@@ -50,10 +50,13 @@
         {% if it.reliability %}<span class="pill {{ 'ok' if it.reliability == 'confirmed' else 'warn' if it.reliability in ('credible','claimed') else '' }}">{{ reliability_label(it.reliability) }}</span>{% endif %}
         {% if it.matched %}<span class="pill accent">{{ it.matched | join(", ") }}</span>{% endif %}
       </div>
-      <h3 style="margin:8px 0 4px;font-size:16px">
-        {% if it.url %}<a href="{{ it.url }}" rel="noopener noreferrer nofollow" target="_blank">{{ it.title }}</a>{% else %}{{ it.title }}{% endif %}
+      <h3 class="news-title" style="margin:8px 0 4px;font-size:16px">
+        {% if it.url.startswith("http") %}<a href="{{ it.url }}" rel="noopener noreferrer nofollow" target="_blank">{{ it.title }}</a>{% else %}{{ it.title }}{% endif %}
       </h3>
       {% if it.excerpt %}<div class="muted" style="font-size:13px">{{ it.excerpt }}</div>{% endif %}
+      {% if it.url.startswith("http") %}
+      <div style="margin-top:12px"><a class="btn small readmore" href="{{ it.url }}" rel="noopener noreferrer nofollow" target="_blank">{{ _("Read the article") }} · {{ it.url | host }} ↗</a></div>
+      {% endif %}
     </article>
     {% else %}
     <div class="card pad muted">{{ _("No news for these criteria. Sources are polled every 30 minutes.") }}</div>
