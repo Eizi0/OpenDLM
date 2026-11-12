@@ -13,8 +13,9 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import String, cast, func, select, text
 from sqlalchemy.orm import Session
 
-from . import health, migrate, news, reports, scheduler, verification
+from . import channels, health, migrate, news, reports, scheduler, verification
 from .config import settings
+from .runtime_config import cfg
 from .connectors import build_connectors
 from .db import SessionLocal
 from .deps import LoginRequired, get_session, has_users, require_user
@@ -60,7 +61,7 @@ def fmt_local(value: datetime | None, pattern: str = "%d/%m/%Y %H:%M") -> str:
         return "—"
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(ZoneInfo(settings.timezone)).strftime(pattern)
+    return value.astimezone(ZoneInfo(cfg.timezone)).strftime(pattern)
 
 
 templates.env.filters["local"] = fmt_local
@@ -314,16 +315,16 @@ def _mask_channel(url: str) -> str:
 
 @router.get("/notifications")
 def notifications_page(request: Request):
-    channels = [_mask_channel(u) for u in settings.notify_url_list]
+    masked = [_mask_channel(u) for u in channels.all_urls()]
     return templates.TemplateResponse(
         request, "notifications.html",
-        {"channels": channels, "min_severity": settings.alert_min_severity, "notice": request.query_params.get("notice"), "error": request.query_params.get("error")},
+        {"channels": masked, "min_severity": cfg.alert_min_severity, "notice": request.query_params.get("notice"), "error": request.query_params.get("error")},
     )
 
 
 @router.post("/notifications/test")
 def notifications_test():
-    if not settings.notify_url_list:
+    if not channels.all_urls():
         return RedirectResponse("/notifications?error=Aucun canal configuré (OPENDLM_NOTIFY_URLS)", status_code=303)
     ok = Notifier().send("[OpenDLM] Message de test", "Si vous lisez ce message, ce canal reçoit bien les alertes et les rapports d'OpenDLM.")
     flag = "notice=Message de test envoyé" if ok else "error=Échec de l'envoi : vérifiez l'URL du canal dans les journaux"
@@ -398,7 +399,7 @@ KIND_LABEL = {"rss": "Flux RSS/Atom", "ransomware_live": "API ransomware.live PR
 def _source_status(src: NewsSource) -> tuple[str, str]:
     if not src.enabled:
         return "Désactivée", ""
-    if src.kind == "ransomware_live" and not settings.ransomware_live_key:
+    if src.kind == "ransomware_live" and not cfg.ransomware_live_key:
         return "Clé API manquante", "warn"
     if src.last_ok is None:
         return "En attente du premier passage", ""
@@ -413,13 +414,13 @@ def sources_page(request: Request, session: Session = Depends(get_session)):
         rows.append({"src": src, "status": label, "tone": tone, "kind": KIND_LABEL.get(src.kind, src.kind),
                      "count": session.scalar(select(func.count(NewsItem.id)).where(NewsItem.source_id == src.id)) or 0})
     leak_sources = [
-        {"name": "Have I Been Pwned", "ok": bool(settings.hibp_api_key), "detail": "Clé API configurée" if settings.hibp_api_key else "Clé API manquante (OPENDLM_HIBP_API_KEY)"},
-        {"name": "Hudson Rock (logs infostealer)", "ok": bool(settings.hudson_rock_key), "detail": "Clé API configurée" if settings.hudson_rock_key else "Clé API manquante (OPENDLM_HUDSON_ROCK_KEY)"},
+        {"name": "Have I Been Pwned", "ok": bool(cfg.hibp_api_key), "detail": "Clé API configurée" if cfg.hibp_api_key else "Clé API manquante (OPENDLM_HIBP_API_KEY)"},
+        {"name": "Hudson Rock (logs infostealer)", "ok": bool(cfg.hudson_rock_key), "detail": "Clé API configurée" if cfg.hudson_rock_key else "Clé API manquante (OPENDLM_HUDSON_ROCK_KEY)"},
         {"name": "Connecteur de démonstration", "ok": settings.demo, "detail": "Actif : données fictives" if settings.demo else "Désactivé"},
     ]
     return templates.TemplateResponse(
         request, "sources.html",
-        {"rows": rows, "leak_sources": leak_sources, "notify_count": len(settings.notify_url_list), "error": request.query_params.get("error")},
+        {"rows": rows, "leak_sources": leak_sources, "notify_count": len(channels.all_urls()), "error": request.query_params.get("error")},
     )
 
 
@@ -429,7 +430,7 @@ def add_source(name: str = Form(...), url: str = Form(...), session: Session = D
     if not (2 <= len(name) <= 80):
         return RedirectResponse("/sources?error=Nom invalide (2 à 80 caractères)", status_code=303)
     try:
-        check_url(url, settings.allow_private_feeds)
+        check_url(url, cfg.allow_private_feeds)
     except UnsafeURL as e:
         return RedirectResponse(f"/sources?error={e}", status_code=303)
     if session.scalar(select(NewsSource).where(NewsSource.name == name)):
@@ -479,9 +480,9 @@ def reports_page(request: Request, report_id: int | None = None, session: Sessio
     if report_id and selected is None:
         raise HTTPException(404, "Rapport inconnu")
     schedule = {
-        "daily": settings.report_daily, "monthly": settings.report_monthly, "hour": settings.report_hour,
-        "timezone": settings.timezone, "send_empty": settings.report_send_empty,
-        "channels": len(settings.notify_url_list), "min_severity": settings.alert_min_severity,
+        "daily": cfg.report_daily, "monthly": cfg.report_monthly, "hour": cfg.report_hour,
+        "timezone": cfg.timezone, "send_empty": cfg.report_send_empty,
+        "channels": len(channels.all_urls()), "min_severity": cfg.alert_min_severity,
     }
     return templates.TemplateResponse(
         request, "reports.html",
@@ -503,7 +504,7 @@ def send_report_now(report_id: int, session: Session = Depends(get_session)):
     report = session.get(Report, report_id)
     if report is None:
         raise HTTPException(404, "Rapport inconnu")
-    if not settings.notify_url_list:
+    if not channels.all_urls():
         return RedirectResponse(f"/reports/{report.id}?error=Aucun canal configuré (OPENDLM_NOTIFY_URLS)", status_code=303)
     ok = reports.send_report(session, report, Notifier())
     flag = "notice=Rapport envoyé" if ok else "error=Échec de l'envoi, voir les journaux"

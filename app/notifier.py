@@ -2,7 +2,7 @@ import logging
 
 import apprise
 
-from .config import settings
+from . import channels
 from .models import Finding
 
 log = logging.getLogger("opendlm.notifier")
@@ -25,7 +25,12 @@ def format_alert(domain: str, findings: list[Finding]) -> tuple[str, str]:
 
 class Notifier:
     def __init__(self, urls: list[str] | None = None) -> None:
-        self._urls = settings.notify_url_list if urls is None else urls
+        self._explicit = urls
+
+    @property
+    def _urls(self) -> list[str]:
+        # Resolved at send time so channels edited in the interface apply immediately.
+        return self._explicit if self._explicit is not None else channels.all_urls()
 
     def alert(self, domain: str, findings: list[Finding]) -> bool:
         title, body = format_alert(domain, findings)

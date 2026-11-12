@@ -121,13 +121,13 @@ def test_unknown_kind_is_rejected(session):
         reports.build_report(session, "hebdo", NOW)
 
 
-def test_scheduled_empty_report_respects_setting(session, monkeypatch):
+def test_scheduled_empty_report_respects_setting(session, cfg_override):
     make_domain(session)
     spy = SendSpy()
-    monkeypatch.setattr(settings, "report_send_empty", True)
+    cfg_override(report_send_empty=True)
     reports.run_scheduled(session, "daily", spy)
     assert len(spy.calls) == 1 and spy.calls[0][2] is True  # envoyé en Markdown : signal de vie
-    monkeypatch.setattr(settings, "report_send_empty", False)
+    cfg_override(report_send_empty=False)
     reports.run_scheduled(session, "daily", spy)
     assert len(spy.calls) == 1  # rien de plus
     assert session.query(Report).count() == 2  # mais archivé dans les deux cas
@@ -144,8 +144,8 @@ def test_sent_at_set_only_on_success(session):
 
 
 @pytest.mark.parametrize("threshold,expected", [("low", 2), ("high", 1), ("critical", 0)])
-def test_immediate_alert_threshold(session, monkeypatch, threshold, expected):
-    monkeypatch.setattr(settings, "alert_min_severity", threshold)
+def test_immediate_alert_threshold(session, cfg_override, threshold, expected):
+    cfg_override(alert_min_severity=threshold)
     d, spy = make_domain(session), FakeNotifier()
     sev = lambda alias, cls: hit(alias, f"B-{alias}", cls)
     c = ScriptedConnector([sev("base", ("Email addresses",))],

@@ -91,8 +91,8 @@ def test_internal_url_is_refused_at_refresh(session):
     assert "interne" in r.error and src.last_ok is False
 
 
-def test_ransomware_live_without_key_is_skipped(session, monkeypatch):
-    monkeypatch.setattr(settings, "ransomware_live_key", "")
+def test_ransomware_live_without_key_is_skipped(session, cfg_override):
+    cfg_override(ransomware_live_key="")
     src = NewsSource(name="ransomware.live", kind="ransomware_live", enabled=True, builtin=True)
     session.add(src)
     session.commit()

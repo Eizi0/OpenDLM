@@ -1,8 +1,10 @@
 import os
+import tempfile
 
 # Avant tout import de l'application : base de test locale, pas de PostgreSQL ni de planificateur.
 os.environ["OPENDLM_DATABASE_URL"] = "sqlite://"
 os.environ["OPENDLM_SCHEDULER_ENABLED"] = "false"
+os.environ["OPENDLM_DATA_DIR"] = tempfile.mkdtemp(prefix="opendlm-test-")
 
 import pytest
 from fastapi.testclient import TestClient
@@ -26,11 +28,13 @@ def session():
 def client():
     """Application complète sur une base vierge (migrations appliquées au démarrage)."""
     from app import main, security
+    from app.runtime_config import cfg
 
     Base.metadata.drop_all(app_engine)
     with app_engine.begin() as conn:
         conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
-    security.reset_secret_cache()
+    cfg._overrides.clear()
+    cfg.invalidate()
     main.throttle = security.LoginThrottle()
     with TestClient(main.app, follow_redirects=False) as c:
         yield c
@@ -44,3 +48,15 @@ def logged_client(client):
     r = client.post("/setup", data={"username": "admin", "password": STRONG, "confirm": STRONG})
     assert r.status_code == 303
     return client
+
+
+@pytest.fixture
+def cfg_override():
+    """Temporarily override runtime settings: cfg_override(hibp_api_key="x")."""
+    from app.runtime_config import cfg
+
+    def apply(**values):
+        cfg._overrides.update(values)
+
+    yield apply
+    cfg._overrides.clear()

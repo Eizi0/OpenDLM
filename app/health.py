@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from .config import settings
+from .runtime_config import cfg
 
 DAYS = 60
 STALE_AFTER = timedelta(hours=26)  # un scan quotidien + une marge
@@ -22,7 +23,7 @@ def _day_state(runs) -> tuple[str, str]:
 
 def build_bars(runs, now: datetime, days: int = DAYS) -> list[dict]:
     """Une barre par jour (fuseau configuré), de la plus ancienne à aujourd'hui."""
-    tz = ZoneInfo(settings.timezone)
+    tz = ZoneInfo(cfg.timezone)
     today = now.astimezone(tz).date()
     by_day = defaultdict(list)
     for r in runs:

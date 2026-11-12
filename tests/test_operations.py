@@ -77,10 +77,10 @@ def test_dashboard_heartbeat_and_stale_warning(logged_client, monkeypatch):
     assert "Le scanner semble à l’arrêt" in logged_client.get("/").text
 
 
-def test_no_stale_warning_without_connector_or_unverified_domain(logged_client, monkeypatch):
+def test_no_stale_warning_without_connector_or_unverified_domain(logged_client, monkeypatch, cfg_override):
     monkeypatch.setattr(settings, "demo", False)
-    monkeypatch.setattr(settings, "hibp_api_key", "")
-    monkeypatch.setattr(settings, "hudson_rock_key", "")
+    cfg_override(hibp_api_key="")
+    cfg_override(hudson_rock_key="")
     add_domain()
     assert "Le scanner semble à l’arrêt" not in logged_client.get("/").text
     monkeypatch.setattr(settings, "demo", True)

@@ -19,13 +19,27 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-class AppSetting(Base):
-    """Réglages internes (par exemple la clé de signature des sessions)."""
+class ConfigValue(Base):
+    """A setting edited from the web interface. Secret values are stored encrypted."""
 
-    __tablename__ = "app_settings"
+    __tablename__ = "config_values"
 
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
     value: Mapped[str] = mapped_column(Text)
+    secret: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Channel(Base):
+    """A notification channel (Apprise URL, encrypted: it usually contains a token)."""
+
+    __tablename__ = "channels"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True)
+    url_enc: Mapped[str] = mapped_column(Text)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class Domain(Base):

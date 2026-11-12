@@ -4,6 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="OPENDLM_")
 
+    data_dir: str = "/data"  # holds the master key (secret.key) used to encrypt secrets stored in the database
+    secret_key: str = ""  # optional: master key from the environment instead of the data volume
+    language: str = "en"  # default interface language (en | fr)
     database_url: str = "postgresql+psycopg://opendlm:opendlm@db:5432/opendlm"
     demo: bool = False
     hibp_api_key: str = ""

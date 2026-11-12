@@ -100,10 +100,10 @@ def test_full_scan_flow_silent_baseline_then_critical_alert(session):
     assert all(f.severity == "critical" for f in r2.new) and len(sent) == 1
 
 
-def test_connector_enabled_only_with_a_key(monkeypatch):
-    monkeypatch.setattr(settings, "hudson_rock_key", "")
-    monkeypatch.setattr(settings, "hibp_api_key", "")
+def test_connector_enabled_only_with_a_key(monkeypatch, cfg_override):
+    cfg_override(hudson_rock_key="")
+    cfg_override(hibp_api_key="")
     monkeypatch.setattr(settings, "demo", False)
     assert build_connectors() == []
-    monkeypatch.setattr(settings, "hudson_rock_key", "abc")
+    cfg_override(hudson_rock_key="abc")
     assert [c.name for c in build_connectors()] == ["Hudson Rock"]

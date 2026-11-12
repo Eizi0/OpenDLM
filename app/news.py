@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from . import feeds
 from .config import settings
+from .runtime_config import cfg
 from .connectors import ransomware_live
 from .models import Domain, NewsItem, NewsSource, WatchWord, utcnow
 from .notifier import Notifier
@@ -113,7 +114,7 @@ def refresh_source(session: Session, source: NewsSource, notifier: Notifier | No
     _record(session, source, ok=True)
     result.new = len(created)
     result.mentions = [] if baseline else [c for c in created if c.matched]
-    session.execute(delete(NewsItem).where(NewsItem.published_at < utcnow() - timedelta(days=settings.news_retention_days)))
+    session.execute(delete(NewsItem).where(NewsItem.published_at < utcnow() - timedelta(days=cfg.news_retention_days)))
     session.commit()
 
     if result.mentions and notifier:
@@ -123,13 +124,13 @@ def refresh_source(session: Session, source: NewsSource, notifier: Notifier | No
 
 def _fetch_entries(source: NewsSource, client: httpx.Client, result: RefreshResult) -> list[feeds.NewsEntry]:
     if source.kind == "ransomware_live":
-        if not settings.ransomware_live_key:
+        if not cfg.ransomware_live_key:
             result.skipped = "Clé API manquante (OPENDLM_RANSOMWARE_LIVE_KEY)"
             return []
-        return ransomware_live.fetch_recent(client, settings.ransomware_live_key, settings.user_agent)
+        return ransomware_live.fetch_recent(client, cfg.ransomware_live_key, settings.user_agent)
     if not source.url:
         raise feeds.FeedError("URL du flux manquante")
-    fetched = feeds.fetch(client, source.url, source.etag, source.last_modified, settings.user_agent, settings.allow_private_feeds)
+    fetched = feeds.fetch(client, source.url, source.etag, source.last_modified, settings.user_agent, cfg.allow_private_feeds)
     if fetched.not_modified:
         result.not_modified = True
         return []

@@ -13,7 +13,8 @@ COPY app ./app
 COPY alembic.ini ./
 COPY migrations ./migrations
 
-RUN useradd --system --uid 10001 --no-create-home opendlm
+RUN useradd --system --uid 10001 --no-create-home opendlm \
+ && mkdir /data && chown opendlm /data
 USER opendlm
 
 EXPOSE 8080

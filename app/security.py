@@ -2,14 +2,14 @@ import base64
 import hashlib
 import hmac
 import os
-import secrets
 import time
 from collections.abc import Callable
 
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from sqlalchemy.orm import Session
 
-from .models import AppSetting, User
+from . import crypto
+from .models import User
 
 SESSION_COOKIE = "opendlm_session"
 SESSION_MAX_AGE = 12 * 3600
@@ -59,27 +59,11 @@ def password_problem(password: str) -> str | None:
     return None
 
 
-# --- Clé de signature des sessions, générée une fois et conservée en base ---
-
-_secret_cache: str | None = None
+# --- Session signing key, derived from the master key (never stored in the database) ---
 
 
-def get_secret(session: Session) -> str:
-    global _secret_cache
-    if _secret_cache:
-        return _secret_cache
-    row = session.get(AppSetting, "secret_key")
-    if row is None:
-        row = AppSetting(key="secret_key", value=secrets.token_urlsafe(48))
-        session.add(row)
-        session.commit()
-    _secret_cache = row.value
-    return _secret_cache
-
-
-def reset_secret_cache() -> None:
-    global _secret_cache
-    _secret_cache = None
+def get_secret(session: Session | None = None) -> str:
+    return crypto.derive("session").hex()
 
 
 def _fingerprint(user: User) -> str:

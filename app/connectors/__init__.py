@@ -1,4 +1,5 @@
 from ..config import settings
+from ..runtime_config import cfg
 from .base import Connector
 from .demo import DemoConnector
 from .hibp import HibpConnector
@@ -13,8 +14,8 @@ def build_connectors() -> list[Connector]:
     connectors: list[Connector] = []
     if settings.demo:
         connectors.append(_demo)
-    if settings.hibp_api_key:
-        connectors.append(HibpConnector(settings.hibp_api_key, settings.user_agent))
-    if settings.hudson_rock_key:
-        connectors.append(HudsonRockConnector(settings.hudson_rock_key, settings.user_agent))
+    if cfg.hibp_api_key:
+        connectors.append(HibpConnector(cfg.hibp_api_key, settings.user_agent))
+    if cfg.hudson_rock_key:
+        connectors.append(HudsonRockConnector(cfg.hudson_rock_key, settings.user_agent))
     return connectors

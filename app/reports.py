@@ -6,6 +6,7 @@ from sqlalchemy import String, cast, func, select
 from sqlalchemy.orm import Session
 
 from .config import settings
+from .runtime_config import cfg
 from .models import Domain, Finding, NewsItem, NewsSource, Report, ScanRun, utcnow
 from .news import RELIABILITY_LABEL
 from .notifier import SEVERITY_LABEL, SEVERITY_ORDER, Notifier
@@ -21,7 +22,7 @@ ATTRIBUTION = (
 
 
 def _tz() -> ZoneInfo:
-    return ZoneInfo(settings.timezone)
+    return ZoneInfo(cfg.timezone)
 
 
 def _fr_date(dt: datetime) -> str:
@@ -149,7 +150,7 @@ def send_report(session: Session, report: Report, notifier: Notifier) -> bool:
 def run_scheduled(session: Session, kind: str, notifier: Notifier) -> Report | None:
     """Génère et envoie le rapport planifié. Un rapport vide n'est envoyé que si configuré (signal de vie)."""
     report = build_report(session, kind)
-    if report.data["empty"] and not settings.report_send_empty:
+    if report.data["empty"] and not cfg.report_send_empty:
         log.info("rapport %s vide : non envoyé", kind)
         return report
     send_report(session, report, notifier)
