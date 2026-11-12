@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from .. import channels, news
 from ..config import settings
 from ..connectors import testing
+from ..connectors.info import INFO, KEYED, ORDER, TOGGLED
 from ..deps import get_session, require_admin
 from ..i18n import N_, t
 from ..models import NewsItem, NewsSource, utcnow
@@ -18,22 +19,6 @@ from .common import redirect, render
 router = APIRouter(dependencies=[Depends(require_admin)])
 
 KIND_LABEL = {"rss": N_("RSS/Atom feed"), "ransomware_live": N_("ransomware.live PRO API")}
-
-# Leak and claim connectors configured with an API key.
-CONNECTORS = {
-    "hibp": {
-        "key": "hibp_api_key", "name": "Have I Been Pwned",
-        "desc": N_("Addresses of your domains found in known data breaches. Needs a paid API key and a domain verified on the HIBP dashboard."),
-    },
-    "hudson_rock": {
-        "key": "hudson_rock_key", "name": "Hudson Rock (Cavalier)",
-        "desc": N_("Accounts of your domains stolen by infostealer malware. Needs a key whose plan includes the search-by-domain permission."),
-    },
-    "ransomware_live": {
-        "key": "ransomware_live_key", "name": "ransomware.live (PRO API)",
-        "desc": N_("Ransomware group claims, used for the news feed. The PRO API key is free."),
-    },
-}
 
 # Last connection test per connector (memory only: it is a convenience, not a record).
 TEST_RESULTS: dict[str, dict] = {}
@@ -57,10 +42,10 @@ def source_or_404(session: Session, source_id: int) -> NewsSource:
     return src
 
 
-def connector_or_404(connector_id: str) -> dict:
-    if connector_id not in CONNECTORS:
+def keyed_or_404(connector_id: str) -> str:
+    if connector_id not in KEYED:
         raise HTTPException(404, t("Unknown connector"))
-    return CONNECTORS[connector_id]
+    return KEYED[connector_id]
 
 
 @router.get("/sources")
@@ -71,20 +56,27 @@ def sources_page(request: Request, session: Session = Depends(get_session)):
         rows.append({"src": src, "status": label, "tone": tone, "kind": t(KIND_LABEL.get(src.kind, src.kind)),
                      "count": session.scalar(select(func.count(NewsItem.id)).where(NewsItem.source_id == src.id)) or 0})
     connectors = []
-    for cid, spec in CONNECTORS.items():
-        origin = cfg.source(spec["key"])
+    for cid in ORDER:
+        info = INFO[cid]
+        key = info.get("key")
+        toggle = info.get("toggle")
+        configured = cfg.is_set(key) if key else bool(cfg.get(toggle))
+        origin = cfg.source(key or toggle)
         connectors.append({
-            "id": cid, "name": spec["name"], "desc": t(spec["desc"]), "configured": cfg.is_set(spec["key"]),
-            "origin": origin, "env_var": f"OPENDLM_{spec['key'].upper()}", "test": TEST_RESULTS.get(cid),
+            "id": cid, "kind": info["kind"], "name": info["name"], "configured": configured, "origin": origin,
+            "has_key": bool(key), "env_var": f"OPENDLM_{(key or toggle).upper()}", "test": TEST_RESULTS.get(cid),
+            "site": info["site"], "signup": info["signup"], "docs": info["docs"],
+            "cost": t(info["cost"]), "desc": t(info["desc"]), "steps": [t(x) for x in info["steps"]],
+            "limits": t(info["limits"]), "privacy": t(info["privacy"]), "credit": t(info["credit"]) if info["credit"] else None,
         })
     return render(request, "sources.html", {"rows": rows, "connectors": connectors, "demo_active": settings.demo, "notify_count": len(channels.all_urls())})
 
 
 @router.post("/connectors/{connector_id}/key")
 def save_key(connector_id: str, api_key: str = Form(...), session: Session = Depends(get_session)):
-    spec = connector_or_404(connector_id)
+    key_name = keyed_or_404(connector_id)
     try:
-        cfg.save(session, {spec["key"]: api_key})
+        cfg.save(session, {key_name: api_key})
     except ValueError:
         return redirect("/sources", error="invalid_value")
     TEST_RESULTS.pop(connector_id, None)
@@ -93,16 +85,24 @@ def save_key(connector_id: str, api_key: str = Form(...), session: Session = Dep
 
 @router.post("/connectors/{connector_id}/key/delete")
 def delete_key(connector_id: str, session: Session = Depends(get_session)):
-    spec = connector_or_404(connector_id)
-    cfg.clear(session, spec["key"])
+    cfg.clear(session, keyed_or_404(connector_id))
     TEST_RESULTS.pop(connector_id, None)
     return redirect("/sources", notice="key_removed")
 
 
+@router.post("/connectors/{connector_id}/toggle")
+def toggle_connector(connector_id: str, session: Session = Depends(get_session)):
+    """Switch a per-address source on or off (opt-in: it queries a third party)."""
+    if connector_id not in TOGGLED:
+        raise HTTPException(404, t("Unknown connector"))
+    setting = TOGGLED[connector_id]
+    cfg.save(session, {setting: "0" if cfg.get(setting) else "1"})
+    return redirect("/sources", notice="saved")
+
+
 @router.post("/connectors/{connector_id}/test")
 def test_connector(connector_id: str):
-    spec = connector_or_404(connector_id)
-    key = getattr(cfg, spec["key"])
+    key = getattr(cfg, keyed_or_404(connector_id))
     if not key:
         return redirect("/sources", error="no_key")
     ok, msgid, params = testing.check(connector_id, key, settings.user_agent)

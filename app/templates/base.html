@@ -27,6 +27,7 @@
     </nav>
     <div style="flex:1"></div>
     {% if demo %}<div class="pill warn">{{ _("Demo mode: fictional leaks") }}</div>{% endif %}
+    {% if leakcheck_on() %}<div class="muted" style="font-size:12px;padding:6px 10px"><a href="https://leakcheck.io" target="_blank" rel="noopener noreferrer">Powered by LeakCheck</a></div>{% endif %}
     <div class="langs" aria-label="{{ _('Language') }}">
       {% for code, name in languages.items() %}<a href="/lang/{{ code }}" class="{{ 'active' if code == lang else '' }}" hreflang="{{ code }}" lang="{{ code }}">{{ code | upper }}</a>{% endfor %}
     </div>

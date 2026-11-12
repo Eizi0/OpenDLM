@@ -26,3 +26,14 @@ class Connector(Protocol):
     name: str
 
     def check_domain(self, domain: str) -> list[Hit]: ...
+
+
+class AddressConnector(Protocol):
+    """A source that can only be asked about one address at a time (free tiers, mostly)."""
+
+    name: str
+    min_interval: float  # seconds to wait between two calls
+    batch_size: int  # addresses checked per run
+    daily_budget: int | None  # maximum checks per 24 h across all domains (None: no known cap)
+
+    def check_address(self, address: str) -> list[Hit]: ...

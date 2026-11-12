@@ -8,16 +8,18 @@ from sqlalchemy.orm import Session
 
 from .. import health, verification
 from ..config import settings
-from ..connectors import build_connectors
+from ..connectors import active_source_names, build_address_connectors, build_connectors
 from ..deps import get_session, require_user
 from ..i18n import t
-from ..models import Domain, Finding, NewsItem, ScanRun, utcnow
+from ..models import Domain, Finding, MonitoredAddress, NewsItem, ScanRun, utcnow
 from ..notifier import Notifier
-from ..scanner import run_scan
+from ..scanner import run_scan, scan_addresses
 from .common import redirect, render
 
 router = APIRouter(dependencies=[Depends(require_user)])
 
+MAX_ADDRESSES = 500
+MANUAL_ADDRESS_BATCH = 10  # a manual scan must not keep the page waiting
 FINDING_STATUSES = {"ack", "resolved", "new"}
 
 
@@ -40,7 +42,7 @@ def dashboard(request: Request, session: Session = Depends(get_session)):
         bars = health.build_bars(runs, now)
         rows.append({"domain": d, "new": new, "total": total, "last": last, "bars": bars, "streak": health.clean_streak(bars)})
     totals = {"domains": len(rows), "new": sum(r["new"] for r in rows), "total": sum(r["total"] for r in rows)}
-    connectors = [c.name for c in build_connectors()]
+    connectors = active_source_names()
     recent = session.scalars(select(NewsItem).where(NewsItem.first_seen > now - timedelta(days=7)).order_by(NewsItem.first_seen.desc()).limit(200)).all()
     mentions = [i for i in recent if i.matched]
     last_scan = session.scalar(select(func.max(ScanRun.started_at)))
@@ -74,7 +76,9 @@ def domain_detail(request: Request, domain_id: int, session: Session = Depends(g
     runs = session.scalars(select(ScanRun).where(ScanRun.domain_id == domain.id).order_by(ScanRun.started_at.desc()).limit(10)).all()
     return render(
         request, "domain.html",
-        {"domain": domain, "findings": findings, "runs": runs, "txt": verification.txt_value(domain.verify_token), "has_connectors": bool(build_connectors())},
+        {"domain": domain, "findings": findings, "runs": runs, "txt": verification.txt_value(domain.verify_token), "has_connectors": bool(active_source_names()),
+         "addresses": session.scalars(select(MonitoredAddress).where(MonitoredAddress.domain_id == domain.id).order_by(MonitoredAddress.address)).all(),
+         "address_sources": [c.name for c in build_address_connectors()], "max_addresses": MAX_ADDRESSES},
     )
 
 
@@ -90,11 +94,15 @@ def verify_domain(domain_id: int, session: Session = Depends(get_session)):
 @router.post("/domains/{domain_id}/scan")
 def scan_domain(domain_id: int, session: Session = Depends(get_session)):
     domain = domain_or_404(session, domain_id)
-    connectors = build_connectors()
-    if not connectors:
+    connectors, address_connectors = build_connectors(), build_address_connectors()
+    if not connectors and not address_connectors:
         raise HTTPException(409, t("No active connector: enable the demo mode or set an API key in Sources"))
+    notifier = Notifier()
     try:
-        run_scan(session, domain, connectors, Notifier())
+        if connectors:
+            run_scan(session, domain, connectors, notifier)
+        if address_connectors:
+            scan_addresses(session, domain, address_connectors, notifier, limit=MANUAL_ADDRESS_BATCH)  # the rest follows hourly
     except PermissionError as e:
         raise HTTPException(403, str(e))
     return redirect(f"/domains/{domain.id}")
@@ -125,3 +133,30 @@ def delete_domain(domain_id: int, confirm: str = Form(""), session: Session = De
     session.delete(domain)
     session.commit()
     return redirect("/")
+
+
+@router.post("/domains/{domain_id}/addresses")
+def add_addresses(domain_id: int, addresses: str = Form(""), session: Session = Depends(get_session)):
+    domain = domain_or_404(session, domain_id)
+    parsed, invalid = verification.parse_addresses(addresses, domain.name)
+    existing = {a for (a,) in session.execute(select(MonitoredAddress.address).where(MonitoredAddress.domain_id == domain.id))}
+    fresh = [a for a in parsed if a not in existing]
+    room = MAX_ADDRESSES - len(existing)
+    if len(fresh) > room:
+        fresh, too_many = fresh[: max(room, 0)], True
+    else:
+        too_many = False
+    session.add_all(MonitoredAddress(domain_id=domain.id, address=a, checked={}) for a in fresh)
+    session.commit()
+    error = "addresses_limit" if too_many else "addresses_invalid" if invalid else None
+    return redirect(f"/domains/{domain.id}", notice="addresses_saved" if fresh else None, error=error)
+
+
+@router.post("/domains/{domain_id}/addresses/{address_id}/delete")
+def delete_address(domain_id: int, address_id: int, session: Session = Depends(get_session)):
+    address = session.get(MonitoredAddress, address_id)
+    if address is None or address.domain_id != domain_id:
+        raise HTTPException(404, t("Unknown address"))
+    session.delete(address)
+    session.commit()
+    return redirect(f"/domains/{domain_id}")

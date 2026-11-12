@@ -7,11 +7,11 @@ from sqlalchemy import select
 from . import news, reports
 from .config import settings
 from .runtime_config import cfg
-from .connectors import build_connectors
+from .connectors import build_address_connectors, build_connectors
 from .db import SessionLocal
 from .models import Domain
 from .notifier import Notifier
-from .scanner import run_scan
+from .scanner import run_scan, scan_addresses
 
 log = logging.getLogger("opendlm.scheduler")
 
@@ -29,6 +29,22 @@ def scan_all() -> None:
                 log.info("scan %s: %d new, %d error(s)", domain.name, len(result.new), len(result.errors))
             except Exception:
                 log.exception("scan %s failed", domain.name)
+
+
+def scan_addresses_all() -> None:
+    """Hourly: a bounded batch of monitored addresses for each per-address source that is switched on."""
+    connectors = build_address_connectors()
+    if not connectors:
+        return
+    notifier = Notifier()
+    with SessionLocal() as session:
+        for domain in session.scalars(select(Domain).where(Domain.verified.is_(True))):
+            try:
+                result = scan_addresses(session, domain, connectors, notifier)
+                if result.new or result.errors:
+                    log.info("addresses %s: %d new, %d error(s)", domain.name, len(result.new), len(result.errors))
+            except Exception:
+                log.exception("address scan %s failed", domain.name)
 
 
 def refresh_news() -> None:
@@ -63,6 +79,9 @@ def apply_schedule() -> None:
             _scheduler.add_job(run_report, "cron", args=[kind], hour=cfg.report_hour, timezone=tz, id=job_id, replace_existing=True, max_instances=1, coalesce=True, **extra)
         elif _scheduler.get_job(job_id):
             _scheduler.remove_job(job_id)
+    if _scheduler.get_job("address-scan") is None:
+        _scheduler.add_job(scan_addresses_all, "interval", hours=1, id="address-scan", max_instances=1, coalesce=True,
+                           next_run_time=datetime.now(timezone.utc) + timedelta(minutes=2))
     existing = _scheduler.get_job("news")
     if existing is None:
         first = datetime.now(timezone.utc) + timedelta(seconds=15)

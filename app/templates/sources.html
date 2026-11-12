@@ -10,19 +10,35 @@
 <div class="note">{{ _("You are responsible for complying with the terms of use of each source. OpenDLM only queries public APIs and feeds, with an identified User-Agent, and never keeps leaked content.") }}</div>
 
 <section class="card">
-  <header><h2>{{ _("Connectors") }}</h2></header>
+  <header><h2>{{ _("Connectors") }}</h2><span class="muted" style="font-size:13px">{{ _("Open a guide to see how to get access.") }}</span></header>
   {% for c in connectors %}
   <div class="row" style="align-items:flex-start">
-    <div style="flex:1 1 280px;min-width:0">
-      <div><b>{{ c.name }}</b>
-        <span class="pill {{ 'ok' if c.configured else '' }}" style="margin-left:6px">{{ _("Key set") if c.configured else _("No key") }}</span>
+    <div style="flex:1 1 300px;min-width:0">
+      <div>
+        <a href="{{ c.site }}" target="_blank" rel="noopener noreferrer" style="font-weight:700;color:var(--text)">{{ c.name }} ↗</a>
+        <span class="pill {{ 'ok' if c.configured else '' }}" style="margin-left:6px">{{ (_("Key set") if c.configured else _("No key")) if c.has_key else (_("On") if c.configured else _("Off")) }}</span>
+        <span class="pill accent" style="margin-left:4px">{{ _("per address") if c.kind == "address" else _("per domain") if c.kind == "domain" else _("news") }}</span>
         {% if c.configured and c.origin == "env" %}<span class="pill accent">{{ _("from the environment") }}</span>{% endif %}
       </div>
       <div class="muted" style="font-size:13px;margin-top:4px">{{ c.desc }}</div>
-      {% if c.configured and c.origin == "env" %}<div class="muted" style="font-size:12px;margin-top:4px">{{ _("Set by %(var)s. A key saved here takes precedence.", var=c.env_var) }}</div>{% endif %}
+      <div style="font-size:13px;margin-top:4px"><b>{{ _("Cost") }}:</b> {{ c.cost }}</div>
+      {% if c.configured and c.origin == "env" and c.has_key %}<div class="muted" style="font-size:12px;margin-top:4px">{{ _("Set by %(var)s. A key saved here takes precedence.", var=c.env_var) }}</div>{% endif %}
       {% if c.test %}<div style="font-size:13px;margin-top:6px;color:{{ 'var(--ok)' if c.test.ok else 'var(--warn)' }}">{{ _("Last test") }} ({{ c.test.at | local }}): {{ _(c.test.msgid, **c.test.params) }}</div>{% endif %}
+      <details class="guide">
+        <summary>{{ _("Guide") }}</summary>
+        <ol>{% for step in c.steps %}<li>{{ step }}</li>{% endfor %}</ol>
+        <div><b>{{ _("Limits") }}:</b> {{ c.limits }}</div>
+        <div><b>{{ _("Privacy") }}:</b> {{ c.privacy }}</div>
+        {% if c.credit %}<div><b>{{ _("Attribution") }}:</b> {{ c.credit }}</div>{% endif %}
+        <div class="guide-links">
+          <a href="{{ c.site }}" target="_blank" rel="noopener noreferrer">{{ _("Website") }} ↗</a>
+          {% if c.signup %}<a href="{{ c.signup }}" target="_blank" rel="noopener noreferrer">{{ _("Get access") }} ↗</a>{% endif %}
+          <a href="{{ c.docs }}" target="_blank" rel="noopener noreferrer">{{ _("Documentation") }} ↗</a>
+        </div>
+      </details>
     </div>
     <div style="flex:1 1 320px;display:flex;flex-direction:column;gap:8px">
+      {% if c.has_key %}
       <form method="post" action="/connectors/{{ c.id }}/key" class="inline" style="flex-wrap:nowrap">
         <input type="password" name="api_key" placeholder="{{ _('Paste the API key') }}" aria-label="{{ _('API key for %(name)s', name=c.name) }}" autocomplete="off" maxlength="512" required style="min-width:0;flex:1;width:auto">
         <button class="btn" type="submit">{{ _("Save") }}</button>
@@ -32,6 +48,10 @@
         <form method="post" action="/connectors/{{ c.id }}/test"><button class="btn small" type="submit">{{ _("Test connection") }}</button></form>
         {% if c.origin == "ui" %}<form method="post" action="/connectors/{{ c.id }}/key/delete"><button class="btn small" type="submit">{{ _("Remove the key") }}</button></form>{% endif %}
       </div>
+      {% endif %}
+      {% else %}
+      <form method="post" action="/connectors/{{ c.id }}/toggle"><button class="btn {{ '' if c.configured else 'primary' }}" type="submit">{{ _("Switch off") if c.configured else _("Switch on") }}</button></form>
+      <div class="muted" style="font-size:12px">{{ c.privacy }}</div>
       {% endif %}
     </div>
   </div>

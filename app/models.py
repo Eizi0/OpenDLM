@@ -75,6 +75,7 @@ class Domain(Base):
 
     findings: Mapped[list["Finding"]] = relationship(back_populates="domain", cascade="all, delete-orphan")
     runs: Mapped[list["ScanRun"]] = relationship(back_populates="domain", cascade="all, delete-orphan")
+    addresses: Mapped[list["MonitoredAddress"]] = relationship(back_populates="domain", cascade="all, delete-orphan")
 
 
 class Finding(Base):
@@ -163,6 +164,23 @@ class Report(Base):
     data: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class MonitoredAddress(Base):
+    """An address watched individually through per-address sources (LeakCheck, XposedOrNot)."""
+
+    __tablename__ = "monitored_addresses"
+    __table_args__ = (UniqueConstraint("domain_id", "address"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    domain_id: Mapped[int] = mapped_column(ForeignKey("domains.id", ondelete="CASCADE"))
+    address: Mapped[str] = mapped_column(String(254))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # {source name: ISO time of the last check}. A source absent here has never checked this address:
+    # its first results are a silent baseline.
+    checked: Mapped[dict] = mapped_column(JSON, default=dict)
+
+    domain: Mapped[Domain] = relationship(back_populates="addresses")
 
 
 class ScanRun(Base):

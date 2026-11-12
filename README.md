@@ -50,17 +50,19 @@ Each user can pick their own interface language (English or French) from the sid
 
 ## Sources
 
-- **Have I Been Pwned**: needs a paid API key and a domain verified on the HIBP dashboard. Data is licensed
-  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): the source must stay credited wherever it is displayed.
-- **Hudson Rock (Cavalier v3)**: accounts of your domains stolen by infostealer malware. Needs a key whose plan includes the
-  `search-by-domain` permission. Only the 20 most recent infections are read on each pass; no password, IP address or machine
-  name is kept. Such a finding is rated *critical*: changing the password is not enough, sessions may have been stolen.
-- **FrenchBreaches** (public RSS feed): independent monitoring of leaks in France, with a reliability level per announcement.
-  Only the title, an excerpt and the link are stored, with a link back to the source.
-- **ransomware.live** (PRO API, free key): ransomware group claims. These are claims, not established facts.
-- **Any RSS/Atom feed**, added from the Sources page (internal addresses are refused). The CERT-FR feed ships disabled:
-  it covers vulnerabilities, not leaks.
+Full guide, with costs, how to get access, limits and privacy impact: **[docs/connectors.md](docs/connectors.md)** (the same guide is built into the Sources page, with links to each provider).
 
+| Source | Works | Cost |
+|---|---|---|
+| [Have I Been Pwned](https://haveibeenpwned.com) | per domain | paid API key, domain verified |
+| [Hudson Rock](https://www.hudsonrock.com/free-api-key) | per domain (accounts stolen by infostealers) | free key on request, full access commercial |
+| [LeakCheck](https://leakcheck.io) | per monitored address, **hashed** | free, no key |
+| [XposedOrNot](https://xposedornot.com) | per monitored address, sent in clear (opt-in) | free, no key, low volume |
+| [ransomware.live](https://www.ransomware.live) | news: ransomware claims | free PRO key |
+| [FrenchBreaches](https://frenchbreaches.com) + any RSS/Atom feed | news | free |
+
+The free per-address sources only need a list of addresses to watch on each domain page; they are checked in small batches every
+hour within each provider's limits. LeakCheck requires a "Powered by LeakCheck" link, shown in the sidebar while it is on.
 News that contains one of your watched words (or one of your domain names) triggers an alert. Each user is responsible for
 complying with the terms of use of the sources they enable.
 

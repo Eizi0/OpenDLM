@@ -22,7 +22,7 @@ log = logging.getLogger("opendlm.reports")
 KINDS = ("daily", "monthly")
 _KIND_LABEL = {"daily": N_("daily"), "monthly": N_("monthly")}
 ATTRIBUTION = N_(
-    "Leak data: Have I Been Pwned (haveibeenpwned.com), licensed CC BY 4.0. "
+    "Leak data: Have I Been Pwned (haveibeenpwned.com, licensed CC BY 4.0), LeakCheck (leakcheck.io), XposedOrNot (xposedornot.com). "
     "OpenDLM does not store any password or leaked content."
 )
 

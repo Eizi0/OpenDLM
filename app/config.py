@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     demo: bool = False
     hibp_api_key: str = ""
     notify_urls: str = ""  # comma-separated Apprise URLs
+    leakcheck_enabled: bool = False  # per-address source: sends hashes of monitored addresses
+    xposedornot_enabled: bool = False  # per-address source: sends monitored addresses
     hudson_rock_key: str = ""  # Hudson Rock (Cavalier v3) API key
     ransomware_live_key: str = ""  # ransomware.live PRO API key (free)
     news_interval_minutes: int = 30

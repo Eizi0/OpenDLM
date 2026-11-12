@@ -33,3 +33,22 @@ def check_dns_txt(domain: str, token: str) -> bool:
         if text == expected:
             return True
     return False
+
+
+ADDRESS_RE = re.compile(r"^[a-z0-9][a-z0-9._%+\-']{0,63}$")
+
+
+def parse_addresses(raw: str, domain: str) -> tuple[list[str], list[str]]:
+    """Split pasted text into valid addresses of the domain (deduplicated, lowercased) and rejected entries."""
+    valid, invalid = [], []
+    for item in re.split(r"[\s,;]+", raw or ""):
+        item = item.strip().lower()
+        if not item:
+            continue
+        local, _, host = item.rpartition("@")
+        if host == domain and ADDRESS_RE.match(local) and len(item) <= 254:
+            if item not in valid:
+                valid.append(item)
+        else:
+            invalid.append(item[:80])
+    return valid, invalid
