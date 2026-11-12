@@ -3,13 +3,13 @@
 from fastapi import APIRouter, Depends, Request
 
 from .. import channels
-from ..deps import require_user
+from ..deps import require_admin
 from ..i18n import t
 from ..notifier import Notifier
 from ..runtime_config import cfg
 from .common import redirect, render
 
-router = APIRouter(dependencies=[Depends(require_user)])
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 
 @router.get("/notifications")

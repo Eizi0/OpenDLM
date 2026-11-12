@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Users") }} · OpenDLM{% endblock %}
+{% block nav_users %}active{% endblock %}
+{% block content %}
+<header>
+  <h1>{{ _("Users") }}</h1>
+  <div class="sub">{{ _("Administrators can change everything. Viewers can read the dashboard, findings, news and reports.") }}</div>
+</header>
+
+<section class="card">
+  <header><h2>{{ _("Accounts") }}</h2></header>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>{{ _("Username") }}</th><th>{{ _("Role") }}</th><th>{{ _("Created") }}</th><th></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td class="mono"><b>{{ u.username }}</b>{% if u.id == request.state.user.id %} <span class="pill accent">{{ _("you") }}</span>{% endif %}</td>
+        <td>
+          <form method="post" action="/users/{{ u.id }}/role" class="inline" style="flex-wrap:nowrap">
+            <select name="role" aria-label="{{ _('Role') }}">
+              {% for r in roles %}<option value="{{ r }}" {% if u.role == r %}selected{% endif %}>{{ _("Administrator") if r == "admin" else _("Viewer") }}</option>{% endfor %}
+            </select>
+            <button class="btn small" type="submit">{{ _("Save") }}</button>
+          </form>
+        </td>
+        <td class="muted">{{ u.created_at | local("date") }}</td>
+        <td>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <form method="post" action="/users/{{ u.id }}/password" class="inline" style="flex-wrap:nowrap">
+              <input type="password" name="password" minlength="12" placeholder="{{ _('New password') }}" aria-label="{{ _('New password') }}" required style="min-height:34px;min-width:150px;width:180px">
+              <button class="btn small" type="submit">{{ _("Reset password") }}</button>
+            </form>
+            {% if u.id != request.state.user.id %}<form method="post" action="/users/{{ u.id }}/delete"><button class="btn small" type="submit">{{ _("Delete") }}</button></form>{% endif %}
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card">
+  <header><h2>{{ _("Add a user") }}</h2></header>
+  <form method="post" action="/users" class="inline pad">
+    <input type="text" name="username" placeholder="{{ _('Username') }}" aria-label="{{ _('Username') }}" autocomplete="off" required style="min-width:0;flex:1 1 180px">
+    <input type="password" name="password" minlength="12" placeholder="{{ _('Password (12 characters minimum)') }}" aria-label="{{ _('Password') }}" autocomplete="new-password" required style="min-width:0;flex:1 1 220px;width:auto">
+    <select name="role" aria-label="{{ _('Role') }}">
+      {% for r in roles|reverse %}<option value="{{ r }}">{{ _("Administrator") if r == "admin" else _("Viewer") }}</option>{% endfor %}
+    </select>
+    <button class="btn primary" type="submit">{{ _("Create") }}</button>
+  </form>
+</section>
+{% endblock %}

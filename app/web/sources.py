@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import channels, news
 from ..config import settings
-from ..deps import get_session, require_user
+from ..deps import get_session, require_admin
 from ..i18n import N_, t
 from ..models import NewsItem, NewsSource
 from ..notifier import Notifier
@@ -14,7 +14,7 @@ from ..runtime_config import cfg
 from ..ssrf import UnsafeURL, check_url
 from .common import redirect, render
 
-router = APIRouter(dependencies=[Depends(require_user)])
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 KIND_LABEL = {"rss": N_("RSS/Atom feed"), "ransomware_live": N_("ransomware.live PRO API")}
 

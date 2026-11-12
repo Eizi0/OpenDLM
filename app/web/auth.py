@@ -68,7 +68,7 @@ def setup_submit(
         error = t("The two passwords do not match.") if password != confirm else password_problem(password)
     if error:
         return render(request, "setup.html", {"error": error}, status_code=422)
-    user = User(username=username, password_hash=hash_password(password))
+    user = User(username=username, password_hash=hash_password(password), role="admin")
     session.add(user)
     session.commit()
     response = RedirectResponse("/", status_code=303)

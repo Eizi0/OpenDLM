@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ _("My profile") }} · OpenDLM{% endblock %}
+{% block nav_profile %}active{% endblock %}
+{% block content %}
+<header>
+  <h1>{{ _("My profile") }}</h1>
+  <div class="sub"><span class="mono">{{ request.state.user.username }}</span> · {{ _("Administrator") if request.state.user.role == "admin" else _("Viewer") }}</div>
+</header>
+
+<section class="card">
+  <header><h2>{{ _("Language") }}</h2></header>
+  <div class="pad" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    {% for code, name in languages.items() %}<a class="btn {{ 'primary' if code == lang else '' }}" href="/lang/{{ code }}">{{ name }}</a>{% endfor %}
+    <span class="muted">{{ _("Applies to your account only.") }}</span>
+  </div>
+</section>
+
+<section class="card">
+  <header><h2>{{ _("Change password") }}</h2></header>
+  <form method="post" action="/profile/password" class="stack pad" style="max-width:420px">
+    <label for="current">{{ _("Current password") }}</label>
+    <input type="password" id="current" name="current" autocomplete="current-password" required>
+    <label for="password">{{ _("New password") }}</label>
+    <input type="password" id="password" name="password" autocomplete="new-password" minlength="12" required>
+    <label for="confirm">{{ _("Confirm password") }}</label>
+    <input type="password" id="confirm" name="confirm" autocomplete="new-password" minlength="12" required>
+    <button class="btn primary" type="submit" style="justify-content:center;align-self:flex-start">{{ _("Change password") }}</button>
+  </form>
+</section>
+{% endblock %}

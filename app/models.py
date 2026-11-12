@@ -16,6 +16,8 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(64), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    # admin: full access. viewer: read-only (existing accounts become admins when the column is added).
+    role: Mapped[str] = mapped_column(String(16), default="viewer", server_default="admin")
     language: Mapped[str | None] = mapped_column(String(8), nullable=True)  # None: use the instance default
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 

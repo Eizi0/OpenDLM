@@ -17,8 +17,11 @@
       <a href="/" class="{% block nav_home %}{% endblock %}">{{ _("Dashboard") }}</a>
       <a href="/news" class="{% block nav_news %}{% endblock %}">{{ _("Leak news") }}</a>
       <a href="/reports" class="{% block nav_reports %}{% endblock %}">{{ _("Reports") }}</a>
+      {% if request.state.user.role == "admin" %}
       <a href="/sources" class="{% block nav_sources %}{% endblock %}">{{ _("Sources") }}</a>
       <a href="/notifications" class="{% block nav_notifications %}{% endblock %}">{{ _("Notifications") }}</a>
+      <a href="/users" class="{% block nav_users %}{% endblock %}">{{ _("Users") }}</a>
+      {% endif %}
     </nav>
     <div style="flex:1"></div>
     {% if demo %}<div class="pill warn">{{ _("Demo mode: fictional leaks") }}</div>{% endif %}
@@ -27,7 +30,7 @@
     </div>
     {% if request.state.user %}
     <form method="post" action="/logout" class="userbox">
-      <span class="muted">{{ request.state.user.username }}</span>
+      <a href="/profile" class="{% block nav_profile %}{% endblock %}" title="{{ _('My profile') }}">{{ request.state.user.username }}</a>
       <button class="btn small" type="submit">{{ _("Sign out") }}</button>
     </form>
     {% endif %}
