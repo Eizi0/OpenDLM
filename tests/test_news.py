@@ -97,7 +97,8 @@ def test_ransomware_live_without_key_is_skipped(session, monkeypatch):
     session.add(src)
     session.commit()
     r = news.refresh_source(session, src, Spy(), client_returning())
-    assert "Clé API manquante" in r.skipped and src.last_ok is False
+    assert "Clé API manquante" in r.skipped
+    assert src.last_ok is None and src.last_error is None  # non configurée ≠ en panne : pas dans les problèmes du rapport
 
 
 def test_ransomware_live_mapping_and_headers():

@@ -83,7 +83,9 @@ def refresh_source(session: Session, source: NewsSource, notifier: Notifier | No
             client.close()
 
     if result.skipped:
-        _record(session, source, ok=False, error=result.skipped)
+        # Source non configurée : ce n'est pas une panne (la page Sources l'indique, le rapport ne la signale pas).
+        source.last_ok, source.last_error = None, None
+        session.commit()
         return result
     if result.not_modified:
         _record(session, source, ok=True)

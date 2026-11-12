@@ -1,0 +1,48 @@
+<div class="paper">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+    <div>
+      <div class="eyebrow">OpenDLM · rapport {{ kind_label[d.kind] }}</div>
+      <h2>{{ d.label }}</h2>
+      <div class="sub">{{ d.totals.domains }} domaine(s) surveillé(s) · généré le {{ d.generated }}</div>
+    </div>
+    {% if d.totals.new_findings %}<span class="badge b-bad">{{ d.totals.new_findings }} nouvelle(s) fuite(s)</span>
+    {% elif d.empty %}<span class="badge b-ok">Rien à signaler</span>
+    {% else %}<span class="badge b-warn">À consulter</span>{% endif %}
+  </div>
+
+  <div class="figs">
+    <div class="fig"><span>Nouvelles fuites</span><b>{{ d.totals.new_findings }}</b></div>
+    <div class="fig"><span>Restant à traiter</span><b>{{ d.totals.open }}</b></div>
+    <div class="fig"><span>Mentions d’actus</span><b>{{ d.totals.mentions }}</b></div>
+    <div class="fig"><span>Actus lues</span><b>{{ d.totals.news }}</b></div>
+  </div>
+
+  {% for dom in d.domains if dom.new %}
+  <h3>{{ dom.name }}</h3>
+  {% for f in dom.new %}
+  <div class="item {{ f.severity }}">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><code>{{ f.identifier }}</code><span class="sev">{{ f.severity_label }}</span></div>
+    <div>{{ f.breach }} <span class="meta">· {{ f.source }}{% if f.breach_date %} · fuite du {{ f.breach_date }}{% endif %}</span></div>
+    {% if f.data_classes %}<div class="meta">Données : {{ f.data_classes | join(", ") }}</div>{% endif %}
+  </div>
+  {% endfor %}
+  {% endfor %}
+
+  {% if d.mentions %}
+  <h3>Actus qui vous concernent</h3>
+  {% for m in d.mentions %}
+  <div class="item low">
+    <b>{% if m.url %}<a href="{{ m.url }}" rel="noopener noreferrer nofollow">{{ m.title }}</a>{% else %}{{ m.title }}{% endif %}</b>
+    <div class="meta">« {{ m.matched | join(", ") }} » · {{ m.source }}{% if m.reliability %} · {{ m.reliability }}{% endif %} · {{ m.published }}</div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if d.problems %}
+  <h3>État des sources</h3>
+  {% for p in d.problems %}<div class="item"><span class="meta" style="color:#1B2230">{{ p }}</span></div>{% endfor %}
+  {% endif %}
+
+  {% if d.empty %}<p style="margin-top:22px">Rien à signaler sur la période.</p>{% endif %}
+  <div class="foot">{{ attribution }}</div>
+</div>

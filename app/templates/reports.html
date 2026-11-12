@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Rapports · OpenDLM{% endblock %}
+{% block nav_reports %}active{% endblock %}
+{% block content %}
+{% include "_report_style.html" %}
+<header style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;align-items:flex-end">
+  <div>
+    <h1>Rapports</h1>
+    <div class="sub">Un rapport par jour et par mois, envoyé sur vos canaux et archivé ici.</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <form method="post" action="/reports/generate"><input type="hidden" name="kind" value="daily"><button class="btn" type="submit">Générer le quotidien</button></form>
+    <form method="post" action="/reports/generate"><input type="hidden" name="kind" value="monthly"><button class="btn primary" type="submit">Générer le mensuel</button></form>
+  </div>
+</header>
+
+{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+{% if notice %}<div class="note" role="status">{{ notice }}</div>{% endif %}
+
+<section style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
+  <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:22px">
+    <div class="card">
+      <header><h2>Planification</h2></header>
+      <div class="pad" style="display:grid;grid-template-columns:130px 1fr;gap:10px 12px;font-size:13px">
+        <span class="muted">Quotidien</span><span>{{ "Chaque jour à %02d:00" | format(schedule.hour) if schedule.daily else "Désactivé" }}</span>
+        <span class="muted">Mensuel</span><span>{{ "Le 1er du mois à %02d:05" | format(schedule.hour) if schedule.monthly else "Désactivé" }}</span>
+        <span class="muted">Fuseau</span><span class="mono">{{ schedule.timezone }}</span>
+        <span class="muted">Rapport vide</span><span>{{ "Envoyé (signal de vie)" if schedule.send_empty else "Non envoyé" }}</span>
+        <span class="muted">Alerte immédiate</span><span>{{ {"low": "Toutes les fuites", "high": "Élevées et critiques", "critical": "Critiques seulement"}.get(schedule.min_severity, schedule.min_severity) }}</span>
+        <span class="muted">Canaux</span><span>{{ schedule.channels }} configuré(s)</span>
+      </div>
+      <div class="foot">Réglable avec les variables OPENDLM_REPORT_* et OPENDLM_ALERT_MIN_SEVERITY.</div>
+    </div>
+
+    <div class="card">
+      <header><h2>Archives</h2></header>
+      {% for r in archive %}
+      <a class="row" href="/reports/{{ r.id }}" style="{% if selected and selected.id == r.id %}background:#1B2230;box-shadow:inset 3px 0 0 var(--accent){% endif %}">
+        <div style="flex:1;min-width:0"><div style="font-weight:500">{{ r.data.label }}</div><div class="muted" style="font-size:12px">{{ kind_label[r.kind] | capitalize }} · {{ r.created_at | local }}</div></div>
+        {% if r.data.totals.new_findings %}<span class="pill bad">{{ r.data.totals.new_findings }} fuite(s)</span>{% else %}<span class="pill ok">Propre</span>{% endif %}
+        {% if r.sent_at %}<span class="pill">Envoyé</span>{% endif %}
+      </a>
+      {% else %}
+      <div class="pad muted">Aucun rapport pour l’instant. Le premier sera généré à l’heure planifiée, ou à la demande.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card pad" style="flex:2 1 560px;min-width:0">
+    {% if selected %}
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
+      <div class="muted" style="font-size:13px">Aperçu · {{ selected.title }}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <form method="post" action="/reports/{{ selected.id }}/send"><button class="btn small" type="submit">Envoyer sur les canaux</button></form>
+        <a class="btn small" href="/reports/{{ selected.id }}/export.html">Télécharger HTML</a>
+        <a class="btn small" href="/reports/{{ selected.id }}/export.md">Télécharger Markdown</a>
+      </div>
+    </div>
+    {% set report = selected %}{% set d = selected.data %}
+    {% include "_report_body.html" %}
+    {% else %}
+    <div class="muted">Générez un premier rapport pour voir l’aperçu.</div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

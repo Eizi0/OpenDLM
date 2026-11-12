@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 
 from .connectors.base import Connector, ConnectorError, Hit
 from .models import Domain, Finding, ScanRun
-from .notifier import Notifier
+from .config import settings
+from .notifier import SEVERITY_ORDER, Notifier
 
 log = logging.getLogger("opendlm.scanner")
 
@@ -88,6 +89,9 @@ def run_scan(session: Session, domain: Domain, connectors: list[Connector], noti
         else:
             result.new.extend(created)
 
-    if result.new and notifier:
-        notifier.alert(domain.name, result.new)
+    # Sous le seuil configuré, une fuite n'est pas alertée tout de suite : elle figure dans le rapport.
+    threshold = SEVERITY_ORDER.get(settings.alert_min_severity, SEVERITY_ORDER["low"])
+    urgent = [f for f in result.new if SEVERITY_ORDER.get(f.severity, 3) <= threshold]
+    if urgent and notifier:
+        notifier.alert(domain.name, urgent)
     return result

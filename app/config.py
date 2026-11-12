@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     news_interval_minutes: int = 30
     news_retention_days: int = 90
     allow_private_feeds: bool = False  # autorise les flux sur le réseau interne
+    report_daily: bool = True
+    report_monthly: bool = True
+    report_hour: int = 7
+    report_send_empty: bool = True  # « rien à signaler » sert aussi de signal de vie
+    alert_min_severity: str = "low"  # low | high | critical : seuil des alertes immédiates
     scheduler_enabled: bool = True
     cookie_secure: bool = False  # true derrière un proxy HTTPS
     scan_hour: int = 6

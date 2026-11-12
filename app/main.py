@@ -7,18 +7,18 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import String, cast, func, select, text
 from sqlalchemy.orm import Session
 
-from . import migrate, news, scheduler, verification
+from . import migrate, news, reports, scheduler, verification
 from .config import settings
 from .connectors import build_connectors
 from .db import SessionLocal
 from .deps import LoginRequired, get_session, has_users, require_user
-from .models import Domain, Finding, NewsItem, NewsSource, ScanRun, User, WatchWord, utcnow
+from .models import Domain, Finding, NewsItem, NewsSource, Report, ScanRun, User, WatchWord, utcnow
 from .ssrf import UnsafeURL, check_url
 from .news import RELIABILITY_LABEL
 from .notifier import SEVERITY_LABEL, Notifier
@@ -416,6 +416,70 @@ def delete_source(source_id: int, session: Session = Depends(get_session)):
     session.delete(src)
     session.commit()
     return RedirectResponse("/sources", status_code=303)
+
+
+@router.get("/reports")
+@router.get("/reports/{report_id}")
+def reports_page(request: Request, report_id: int | None = None, session: Session = Depends(get_session)):
+    archive = session.scalars(select(Report).order_by(Report.created_at.desc()).limit(60)).all()
+    selected = session.get(Report, report_id) if report_id else (archive[0] if archive else None)
+    if report_id and selected is None:
+        raise HTTPException(404, "Rapport inconnu")
+    schedule = {
+        "daily": settings.report_daily, "monthly": settings.report_monthly, "hour": settings.report_hour,
+        "timezone": settings.timezone, "send_empty": settings.report_send_empty,
+        "channels": len(settings.notify_url_list), "min_severity": settings.alert_min_severity,
+    }
+    return templates.TemplateResponse(
+        request, "reports.html",
+        {"archive": archive, "selected": selected, "schedule": schedule, "kind_label": reports.KIND_LABEL,
+         "attribution": reports.ATTRIBUTION, "error": request.query_params.get("error"), "notice": request.query_params.get("notice")},
+    )
+
+
+@router.post("/reports/generate")
+def generate_report(kind: str = Form(...), session: Session = Depends(get_session)):
+    if kind not in reports.KIND_LABEL:
+        raise HTTPException(422, "Type de rapport invalide")
+    report = reports.build_report(session, kind)
+    return RedirectResponse(f"/reports/{report.id}", status_code=303)
+
+
+@router.post("/reports/{report_id}/send")
+def send_report_now(report_id: int, session: Session = Depends(get_session)):
+    report = session.get(Report, report_id)
+    if report is None:
+        raise HTTPException(404, "Rapport inconnu")
+    if not settings.notify_url_list:
+        return RedirectResponse(f"/reports/{report.id}?error=Aucun canal configuré (OPENDLM_NOTIFY_URLS)", status_code=303)
+    ok = reports.send_report(session, report, Notifier())
+    flag = "notice=Rapport envoyé" if ok else "error=Échec de l'envoi, voir les journaux"
+    return RedirectResponse(f"/reports/{report.id}?{flag}", status_code=303)
+
+
+def _export_name(report: Report, ext: str) -> str:
+    return f"opendlm-rapport-{report.kind}-{report.created_at.strftime('%Y%m%d')}.{ext}"
+
+
+@router.get("/reports/{report_id}/export.md")
+def export_markdown(report_id: int, session: Session = Depends(get_session)):
+    report = session.get(Report, report_id)
+    if report is None:
+        raise HTTPException(404, "Rapport inconnu")
+    return PlainTextResponse(
+        reports.render_markdown(report), media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{_export_name(report, "md")}"'},
+    )
+
+
+@router.get("/reports/{report_id}/export.html")
+def export_html(request: Request, report_id: int, session: Session = Depends(get_session)):
+    report = session.get(Report, report_id)
+    if report is None:
+        raise HTTPException(404, "Rapport inconnu")
+    response = templates.TemplateResponse(request, "report_doc.html", {"report": report, "d": report.data, "kind_label": reports.KIND_LABEL, "attribution": reports.ATTRIBUTION})
+    response.headers["Content-Disposition"] = f'attachment; filename="{_export_name(report, "html")}"'
+    return response
 
 
 app.include_router(router)

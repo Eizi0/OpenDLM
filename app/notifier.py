@@ -31,14 +31,15 @@ class Notifier:
         title, body = format_alert(domain, findings)
         return self.send(title, body)
 
-    def send(self, title: str, body: str) -> bool:
+    def send(self, title: str, body: str, markdown: bool = False) -> bool:
         if not self._urls:
             log.info("Aucun canal configuré. Message : %s\n%s", title, body)
             return False
         ap = apprise.Apprise()
         for url in self._urls:
             ap.add(url)
-        ok = ap.notify(title=title, body=body)
+        fmt = apprise.NotifyFormat.MARKDOWN if markdown else apprise.NotifyFormat.TEXT
+        ok = ap.notify(title=title, body=body, body_format=fmt)
         if not ok:
             log.error("Échec de l'envoi : %s", title)
         return bool(ok)

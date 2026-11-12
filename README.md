@@ -37,9 +37,18 @@ Variables d'environnement (voir `.env.example`) :
 | `OPENDLM_NEWS_INTERVAL_MINUTES` | Fréquence de lecture des actus (défaut 30) |
 | `OPENDLM_NEWS_RETENTION_DAYS` | Durée de conservation des actus (défaut 90) |
 | `OPENDLM_ALLOW_PRIVATE_FEEDS` | `true` pour autoriser des flux sur le réseau interne |
+| `OPENDLM_REPORT_DAILY` / `OPENDLM_REPORT_MONTHLY` | Active les rapports quotidien et mensuel (défaut `true`) |
+| `OPENDLM_REPORT_HOUR` | Heure d'envoi des rapports (défaut 7) |
+| `OPENDLM_REPORT_SEND_EMPTY` | Envoie aussi un rapport « rien à signaler » (signal de vie, défaut `true`) |
+| `OPENDLM_ALERT_MIN_SEVERITY` | Seuil des alertes immédiates : `low`, `high` ou `critical` |
 | `OPENDLM_SCAN_HOUR` | Heure du scan quotidien (défaut 6) |
 | `OPENDLM_TIMEZONE` | Fuseau horaire (défaut `Europe/Paris`) |
 | `OPENDLM_COOKIE_SECURE` | `true` derrière un proxy HTTPS |
+
+## Alertes et rapports
+
+- **Alerte immédiate** dès qu'une nouvelle fuite est détectée (adresse, fuite, source, date, types de données, jamais de mot de passe). Le seuil de gravité se règle avec `OPENDLM_ALERT_MIN_SEVERITY` ; ce qui est sous le seuil figure dans le rapport.
+- **Rapport quotidien** (dernières 24 h) et **rapport mensuel** (mois civil précédent), envoyés sur vos canaux en Markdown, archivés dans l'application, et exportables en HTML ou Markdown. Un rapport « rien à signaler » est envoyé par défaut : son absence indique que le service ne tourne plus.
 
 ## Sources
 
