@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: opendlm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-opendlm}
+      POSTGRES_DB: opendlm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opendlm -d opendlm"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      OPENDLM_DATABASE_URL: postgresql+psycopg://opendlm:${POSTGRES_PASSWORD:-opendlm}@db:5432/opendlm
+      OPENDLM_DEMO: ${OPENDLM_DEMO:-false}
+      OPENDLM_HIBP_API_KEY: ${OPENDLM_HIBP_API_KEY:-}
+      OPENDLM_NOTIFY_URLS: ${OPENDLM_NOTIFY_URLS:-}
+      OPENDLM_SCAN_HOUR: ${OPENDLM_SCAN_HOUR:-6}
+      OPENDLM_TIMEZONE: ${OPENDLM_TIMEZONE:-Europe/Paris}
+    # Pas d'authentification pour l'instant : n'exposer que sur la machine locale.
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  pgdata:
