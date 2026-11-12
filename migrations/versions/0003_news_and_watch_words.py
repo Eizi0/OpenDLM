@@ -1,4 +1,4 @@
-"""actus et mots surveilles
+"""news and watch words
 
 Revision ID: 0003
 Revises: 0002

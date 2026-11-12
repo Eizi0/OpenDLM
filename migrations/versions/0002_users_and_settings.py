@@ -1,4 +1,4 @@
-"""utilisateurs et reglages
+"""users and settings
 
 Revision ID: 0002
 Revises: 0001
