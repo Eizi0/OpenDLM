@@ -1,13 +1,24 @@
 {% extends "auth_base.html" %}
 {% block title %}{{ _("Sign in") }} · OpenDLM{% endblock %}
 {% block content %}
-<h1 style="font-size:22px">{{ _("Sign in") }}</h1>
-{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
-<form method="post" action="/login" class="stack">
-  <label for="username">{{ _("Username") }}</label>
-  <input type="text" id="username" name="username" autocomplete="username" autofocus required>
-  <label for="password">{{ _("Password") }}</label>
-  <input type="password" id="password" name="password" autocomplete="current-password" required>
-  <button class="btn primary" type="submit" style="justify-content:center">{{ _("Sign in") }}</button>
+<h2>{{ _("Welcome back") }}</h2>
+<p class="lead">{{ _("Sign in to your OpenDLM instance.") }}</p>
+{% if error %}
+<div class="alert" role="alert"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 18px;margin-top:2px"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.01"/></svg><span>{{ error }}</span></div>
+{% endif %}
+<form method="post" action="/login" data-once>
+  <div class="field">
+    <label for="username">{{ _("Username") }}</label>
+    <input type="text" id="username" name="username" value="{{ username or '' }}" autocomplete="username" autocapitalize="none" spellcheck="false" {% if not username %}autofocus{% endif %} required>
+  </div>
+  <div class="field">
+    <label for="password">{{ _("Password") }}</label>
+    <div class="input-wrap">
+      <input type="password" id="password" name="password" autocomplete="current-password" {% if username %}autofocus{% endif %} required>
+      <button type="button" class="reveal" data-toggle-password="password" data-show="{{ _('Show') }}" data-hide="{{ _('Hide') }}" aria-pressed="false">{{ _("Show") }}</button>
+    </div>
+    <div class="hint" data-caps-for="password" hidden>⚠ {{ _("Caps Lock is on") }}</div>
+  </div>
+  <button class="btn primary block" type="submit" data-busy="{{ _('Signing in…') }}">{{ _("Sign in") }}</button>
 </form>
 {% endblock %}

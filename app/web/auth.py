@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..deps import get_session, has_users
+from ..runtime_config import cfg
 from ..i18n import LANGUAGES, t
 from ..models import User
 from .. import twofa
@@ -50,7 +51,7 @@ def username_problem(username: str) -> str | None:
 def setup_page(request: Request, session: Session = Depends(get_session)):
     if has_users(session):
         return RedirectResponse("/login", status_code=303)
-    return render(request, "setup.html", {"error": None})
+    return render(request, "setup.html", {"error": None, "username": "", "twofa_next": cfg.require_2fa != "off"})
 
 
 @router.post("/setup")
@@ -68,7 +69,7 @@ def setup_submit(
     if not error:
         error = t("The two passwords do not match.") if password != confirm else password_problem(password)
     if error:
-        return render(request, "setup.html", {"error": error}, status_code=422)
+        return render(request, "setup.html", {"error": error, "username": username, "twofa_next": cfg.require_2fa != "off"}, status_code=422)
     user = User(username=username, password_hash=hash_password(password), role="admin")
     session.add(user)
     session.commit()
@@ -94,11 +95,11 @@ def login_submit(
     key = request.client.host if request.client else "unknown"
     wait = throttle.retry_after(key)
     if wait:
-        return render(request, "login.html", {"error": t("Too many attempts. Try again in %(s)d s.", s=wait)}, status_code=429)
+        return render(request, "login.html", {"error": t("Too many attempts. Try again in %(s)d s.", s=wait), "username": username}, status_code=429)
     user = authenticate(session, username, password)
     if user is None:
         throttle.fail(key)
-        return render(request, "login.html", {"error": t("Incorrect username or password.")}, status_code=401)
+        return render(request, "login.html", {"error": t("Incorrect username or password."), "username": username}, status_code=401)
     throttle.reset(key)
     if user.totp_enabled:
         # Password accepted but no session yet: the second factor is required.

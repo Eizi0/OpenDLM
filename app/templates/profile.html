@@ -30,7 +30,10 @@
 
 <section class="card">
   <header><h2>{{ _("Two-factor authentication") }}</h2>
-    {% if me.totp_enabled %}<span class="pill ok">{{ _("Enabled") }}</span>{% else %}<span class="pill">{{ _("Disabled") }}</span>{% endif %}
+    <span style="display:flex;gap:8px;align-items:center">
+      {% if twofa_required %}<span class="pill warn">{{ _("Required") }}</span>{% endif %}
+      {% if me.totp_enabled %}<span class="pill ok">{{ _("Enabled") }}</span>{% else %}<span class="pill">{{ _("Disabled") }}</span>{% endif %}
+    </span>
   </header>
   {% if me.totp_enabled %}
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
@@ -39,10 +42,11 @@
       <input type="password" name="password" placeholder="{{ _('Current password') }}" aria-label="{{ _('Current password') }}" autocomplete="current-password" required style="min-width:0;flex:1 1 200px;width:auto">
       <button class="btn" type="submit">{{ _("Generate new recovery codes") }}</button>
     </form>
-    <form method="post" action="/profile/2fa/disable" class="inline">
+    {% if twofa_required %}<div class="muted" style="font-size:13px">{{ _("Two-factor authentication is required for your role and cannot be disabled.") }}</div>
+    {% else %}<form method="post" action="/profile/2fa/disable" class="inline">
       <input type="password" name="password" placeholder="{{ _('Current password') }}" aria-label="{{ _('Current password') }}" autocomplete="current-password" required style="min-width:0;flex:1 1 200px;width:auto">
       <button class="btn" type="submit">{{ _("Disable two-factor authentication") }}</button>
-    </form>
+    </form>{% endif %}
   </div>
   {% elif setup %}
   <div class="pad" style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">

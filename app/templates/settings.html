@@ -39,6 +39,21 @@
 </section>
 
 <section class="card">
+  <header><h2>{{ _("Security") }}</h2></header>
+  <form method="post" action="/settings/security" class="stack pad" style="max-width:520px">
+    <label for="require_2fa">{{ _("Two-factor authentication") }} {{ origin("require_2fa") }}</label>
+    <select id="require_2fa" name="require_2fa">
+      <option value="off" {% if v.require_2fa == "off" %}selected{% endif %}>{{ _("Optional for everyone") }}</option>
+      <option value="admins" {% if v.require_2fa == "admins" %}selected{% endif %}>{{ _("Required for administrators") }}</option>
+      <option value="all" {% if v.require_2fa == "all" %}selected{% endif %}>{{ _("Required for all users") }}</option>
+    </select>
+    <div class="muted" style="font-size:12px">{{ _("Someone who must use it and has not set it up yet is taken to their profile at the next page they open, and can only reach it once it is enabled.") }}</div>
+    <div style="margin-top:10px"><button class="btn primary" type="submit">{{ _("Save") }}</button></div>
+  </form>
+  <form method="post" action="/settings/security/reset" class="pad" style="padding-top:0"><button class="btn small" type="submit">{{ _("Reset to environment / default") }}</button></form>
+</section>
+
+<section class="card">
   <header><h2>{{ _("Alerts") }}</h2></header>
   <form method="post" action="/settings/alerts" class="stack pad" style="max-width:520px">
     <label for="alert_min_severity">{{ _("Immediate alert threshold") }} {{ origin("alert_min_severity") }}</label>

@@ -1,16 +1,32 @@
 {% extends "auth_base.html" %}
 {% block title %}{{ _("First-run setup") }} · OpenDLM{% endblock %}
 {% block content %}
-<h1 style="font-size:22px">{{ _("Create the administrator account") }}</h1>
-<div class="muted" style="margin-bottom:14px">{{ _("First use: choose a username and a password of at least 12 characters. This page disappears once the account is created.") }}</div>
-{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
-<form method="post" action="/setup" class="stack">
-  <label for="username">{{ _("Username") }}</label>
-  <input type="text" id="username" name="username" autocomplete="username" autofocus required>
-  <label for="password">{{ _("Password") }}</label>
-  <input type="password" id="password" name="password" autocomplete="new-password" minlength="12" required>
-  <label for="confirm">{{ _("Confirm password") }}</label>
-  <input type="password" id="confirm" name="confirm" autocomplete="new-password" minlength="12" required>
-  <button class="btn primary" type="submit" style="justify-content:center">{{ _("Create the account") }}</button>
+<span class="step-badge">{{ _("First-run setup") }}</span>
+<h2>{{ _("Create the administrator account") }}</h2>
+<p class="lead">{{ _("This account manages everything. Choose a username and a password of at least 12 characters. This page disappears once the account is created.") }}</p>
+{% if error %}
+<div class="alert" role="alert"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 18px;margin-top:2px"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.01"/></svg><span>{{ error }}</span></div>
+{% endif %}
+<form method="post" action="/setup" data-once>
+  <div class="field">
+    <label for="username">{{ _("Username") }}</label>
+    <input type="text" id="username" name="username" value="{{ username or '' }}" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus required>
+  </div>
+  <div class="field">
+    <label for="password">{{ _("Password") }}</label>
+    <div class="input-wrap">
+      <input type="password" id="password" name="password" autocomplete="new-password" minlength="12" data-strength required>
+      <button type="button" class="reveal" data-toggle-password="password" data-show="{{ _('Show') }}" data-hide="{{ _('Hide') }}" aria-pressed="false">{{ _("Show") }}</button>
+    </div>
+    <div class="meter" id="strength-meter" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div class="meter-label" id="strength-label" data-names="{{ _('Weak') }}|{{ _('Fair') }}|{{ _('Good') }}|{{ _('Strong') }}"></div>
+    <div class="hint" data-caps-for="password" hidden>⚠ {{ _("Caps Lock is on") }}</div>
+  </div>
+  <div class="field">
+    <label for="confirm">{{ _("Confirm password") }}</label>
+    <input type="password" id="confirm" name="confirm" autocomplete="new-password" minlength="12" required>
+  </div>
+  <button class="btn primary block" type="submit" data-busy="{{ _('Creating…') }}">{{ _("Create the account") }}</button>
 </form>
+{% if twofa_next %}<p class="muted" style="font-size:13px;margin-top:16px">🔐 {{ _("Next step: you will protect this account with two-factor authentication.") }}</p>{% endif %}
 {% endblock %}

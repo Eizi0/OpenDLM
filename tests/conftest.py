@@ -4,6 +4,7 @@ import tempfile
 # Avant tout import de l'application : base de test locale, pas de PostgreSQL ni de planificateur.
 os.environ["OPENDLM_DATABASE_URL"] = "sqlite://"
 os.environ["OPENDLM_SCHEDULER_ENABLED"] = "false"
+os.environ["OPENDLM_REQUIRE_2FA"] = "off"  # existing tests sign in without a second factor
 os.environ["OPENDLM_HUDSON_ROCK_FREE_ENABLED"] = "false"  # no network source unless a test turns it on
 os.environ["OPENDLM_DATA_DIR"] = tempfile.mkdtemp(prefix="opendlm-test-")
 

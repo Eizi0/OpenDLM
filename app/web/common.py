@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from .. import reports
+from .. import __version__
 from ..config import settings
 from ..i18n import LANGUAGES, N_, current_language, fmt_date, fmt_datetime, t
 from ..labels import RELIABILITY_CODES, reliability_label, severity_label
@@ -31,6 +32,7 @@ templates.env.globals.update(
     languages=LANGUAGES,
     current_language=current_language,
     demo=settings.demo,
+    app_version=__version__,
     leakcheck_on=lambda: bool(cfg.leakcheck_enabled),
     kind_label=reports.kind_label,
     report_label=reports.label_text,
@@ -79,6 +81,8 @@ FLASH = {
     "last_admin": N_("You cannot remove or demote the last administrator."),
     "twofa_enabled": N_("Two-factor authentication enabled."),
     "twofa_disabled": N_("Two-factor authentication disabled."),
+    "twofa_required": N_("Two-factor authentication is required for your role: set it up to continue."),
+    "twofa_mandatory": N_("Two-factor authentication is required for your role and cannot be disabled."),
     "twofa_reset": N_("Two-factor authentication reset for this user."),
     "twofa_bad_code": N_("Invalid code. Try again."),
     "token_created": N_("API token created. Copy it now: it is shown only once."),

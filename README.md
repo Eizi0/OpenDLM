@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" alt="OpenDLM logo" width="140"></p>
+
 # OpenDLM
 
 **Open Data Leak Monitor** is a self-hosted service that watches whether the e-mail addresses of your domains show up in data
@@ -81,7 +83,14 @@ complying with the terms of use of the sources they enable.
   warns when no scan ran for more than 26 hours while verified domains exist.
 - **Finding statuses**: new, acknowledged, resolved (reopenable). Findings from the baseline stay "known".
 - **Notifications page**: manage channels (tokens are never displayed again) and send a test message.
-- **Two-factor authentication** (TOTP): each user can enable it from their profile, with a QR code, single-use recovery codes, protection against code replay, and an administrator reset for someone locked out.
+- **Two-factor authentication** (TOTP), **required for administrators by default** (Settings: optional for everyone, required for administrators, or required for all users). A user who must use it is taken to their profile at their next page, with the QR code ready, and reaches nothing else until it is enabled. It comes with single-use recovery codes, protection against code replay and throttled attempts.
+- **Locked out?** Another administrator can reset your second factor from the Users page. If you were the only administrator, use the emergency commands inside the container:
+
+  ```bash
+  docker compose exec app python -m app.cli list-users
+  docker compose exec app python -m app.cli reset-2fa admin
+  docker compose exec app python -m app.cli reset-password admin
+  ```
 - **Roles**: administrators change everything; viewers are read-only and cannot open Sources, Notifications, Settings or Users.
 
 ## API, exports and monitoring

@@ -89,11 +89,14 @@ def delete_user(request: Request, user_id: int, session: Session = Depends(get_s
 def profile_page(request: Request, session: Session = Depends(get_session)):
     user = session.get(User, request.state.user.id)
     setup = None
+    required = twofa.required_for(user)
+    if required and not user.totp_enabled and not user.totp_secret_enc:
+        twofa.start_enrollment(session, user)  # mandatory: show the QR code straight away
     if user.totp_secret_enc and not user.totp_enabled:  # enrollment in progress
         secret = twofa.secret_of(user)
         if secret:
             setup = {"secret": secret, "qr": twofa.qr_svg(twofa.provisioning_uri(user, secret))}
-    return render(request, "profile.html", {"me": user, "setup": setup, "recovery_left": len(user.recovery_hashes or [])})
+    return render(request, "profile.html", {"me": user, "setup": setup, "recovery_left": len(user.recovery_hashes or []), "twofa_required": required})
 
 
 def _recovery_page(request: Request, codes: list[str]):
@@ -136,6 +139,8 @@ def twofa_disable(request: Request, password: str = Form(...), session: Session 
     user = session.get(User, request.state.user.id)
     if not verify_password(password, user.password_hash):
         return redirect("/profile", error="password_wrong")
+    if twofa.required_for(user):
+        return redirect("/profile", error="twofa_mandatory")
     twofa.disable(session, user)
     return redirect("/profile", notice="twofa_disabled")
 

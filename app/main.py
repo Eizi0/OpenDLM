@@ -11,7 +11,7 @@ from sqlalchemy import text
 from . import migrate, news, scheduler
 from .config import settings
 from .db import SessionLocal
-from .deps import LoginRequired, has_users
+from .deps import LoginRequired, TwoFactorSetupRequired, has_users
 from .i18n import LANGUAGES, reset_language, set_language, t
 from .security import SESSION_COOKIE, get_secret, user_from_token
 from .web import api, auth, dashboard, news_pages, notifications, reports_pages, settings_pages, sources, tokens, users
@@ -79,6 +79,11 @@ async def login_required_handler(request: Request, _: LoginRequired):
     with SessionLocal() as session:
         target = "/login" if has_users(session) else "/setup"
     return RedirectResponse(target, status_code=303)
+
+
+@app.exception_handler(TwoFactorSetupRequired)
+async def twofa_required_handler(request: Request, _: TwoFactorSetupRequired):
+    return RedirectResponse("/profile?e=twofa_required", status_code=303)
 
 
 @app.get("/healthz")

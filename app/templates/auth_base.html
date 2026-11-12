@@ -3,21 +3,39 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080A12">
 <title>{% block title %}OpenDLM{% endblock %}</title>
+<link rel="icon" href="/static/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
 </head>
-<body>
-<div class="auth-wrap">
-  <div class="auth-card card">
-    <div class="brand" style="padding:0 0 18px">
-      <span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0D1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6l8-3z"/><circle cx="12" cy="11" r="2.4"/></svg></span>
-      OpenDLM
-      <span class="langs" style="margin-left:auto" aria-label="{{ _('Language') }}">
+<body class="auth">
+<div class="auth-shell">
+  <aside class="auth-brand">
+    <div class="auth-brand-inner">
+      <img src="/static/logo.png" width="120" height="120" alt="">
+      <h1>OpenDLM</h1>
+      <p class="tag">Open Data Leak Monitor</p>
+      <ul class="auth-points">
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><span>{{ _("Know when your addresses show up in a leak, before someone else uses them.") }}</span></li>
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/></svg><span>{{ _("Self-hosted: your configuration and findings stay on your server.") }}</span></li>
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>{{ _("Leaked content is never stored: only which address, which breach and when.") }}</span></li>
+      </ul>
+    </div>
+    <div class="auth-foot">v{{ app_version }} · <a href="https://github.com/Eizi0/OpenDLM" target="_blank" rel="noopener noreferrer">GitHub</a> · MIT</div>
+  </aside>
+  <main class="auth-panel">
+    <div class="auth-top">
+      <span class="langs" aria-label="{{ _('Language') }}">
         {% for code, name in languages.items() %}<a href="/lang/{{ code }}" class="{{ 'active' if code == lang else '' }}" hreflang="{{ code }}" lang="{{ code }}">{{ code | upper }}</a>{% endfor %}
       </span>
     </div>
-    {% block content %}{% endblock %}
-  </div>
+    <div class="auth-card">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
 </div>
 </body>
 </html>

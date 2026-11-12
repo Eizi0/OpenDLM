@@ -19,6 +19,14 @@ RECOVERY_CODES = 10
 PENDING_COOKIE = "opendlm_2fa"
 
 
+def required_for(user: User) -> bool:
+    """True when the instance policy makes two-factor authentication mandatory for this user."""
+    from .runtime_config import cfg  # local import: runtime_config does not depend on this module
+
+    policy = cfg.require_2fa
+    return policy == "all" or (policy == "admins" and user.role == "admin")
+
+
 def new_secret() -> str:
     return pyotp.random_base32()
 

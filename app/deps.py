@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .db import SessionLocal
+from . import twofa
 from .i18n import t
 from .models import User
 from .security import SESSION_COOKIE, get_secret, user_from_token
@@ -15,6 +16,10 @@ def get_session():
 
 class LoginRequired(Exception):
     """Raised when a protected page is requested without a valid session."""
+
+
+class TwoFactorSetupRequired(Exception):
+    """Raised when the policy requires two-factor authentication and the user has not set it up yet."""
 
 
 def has_users(session: Session) -> bool:
@@ -31,6 +36,8 @@ def require_user(request: Request, session: Session = Depends(get_session)) -> U
     if user is None:
         raise LoginRequired()
     request.state.user = user
+    if twofa.required_for(user) and not user.totp_enabled and not request.url.path.startswith(SELF_SERVICE_PREFIX):
+        raise TwoFactorSetupRequired()  # only the profile (where it is set up) stays reachable
     if request.method not in ("GET", "HEAD") and user.role != "admin" and not request.url.path.startswith(SELF_SERVICE_PREFIX):
         raise HTTPException(403, t("Read-only account: this action requires an administrator"))
     return user

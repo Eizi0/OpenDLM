@@ -1,13 +1,21 @@
 {% extends "auth_base.html" %}
-{% block title %}{{ _("Two-factor authentication") }} · OpenDLM{% endblock %}
+{% block title %}{{ _("Two-step verification") }} · OpenDLM{% endblock %}
 {% block content %}
-<h1 style="font-size:22px">{{ _("Two-factor authentication") }}</h1>
-<div class="muted" style="margin-bottom:14px">{{ _("Enter the 6-digit code from your authenticator app, or one of your recovery codes.") }}</div>
-{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
-<form method="post" action="/login/2fa" class="stack">
-  <label for="code">{{ _("Code") }}</label>
-  <input type="text" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" autofocus required maxlength="32">
-  <button class="btn primary" type="submit" style="justify-content:center">{{ _("Verify") }}</button>
+<span class="step-badge">{{ _("Step 2 of 2") }}</span>
+<h2>{{ _("Two-step verification") }}</h2>
+<p class="lead">{{ _("Open your authenticator app and enter the 6-digit code for OpenDLM.") }}</p>
+{% if error %}
+<div class="alert" role="alert"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 18px;margin-top:2px"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.01"/></svg><span>{{ error }}</span></div>
+{% endif %}
+<form method="post" action="/login/2fa" data-once>
+  <div class="field">
+    <label for="code" id="code-label">{{ _("Authentication code") }}</label>
+    <input type="text" id="code" name="code" class="code-input" inputmode="numeric" autocomplete="one-time-code" placeholder="000 000" maxlength="32" autofocus required>
+  </div>
+  <button class="btn primary block" type="submit" data-busy="{{ _('Verifying…') }}">{{ _("Verify") }}</button>
 </form>
-<div style="margin-top:14px"><a href="/login" class="muted">{{ _("Back to sign in") }}</a></div>
+<div style="margin-top:14px;display:flex;flex-direction:column;gap:2px">
+  <button type="button" class="linklike" id="recovery-toggle" data-use-recovery="{{ _('Use a recovery code instead') }}" data-use-app="{{ _('Use the authenticator app instead') }}" data-label-recovery="{{ _('Recovery code') }}" data-label-app="{{ _('Authentication code') }}">{{ _("Use a recovery code instead") }}</button>
+  <a href="/login" class="muted" style="font-size:13px">← {{ _("Back to sign in") }}</a>
+</div>
 {% endblock %}

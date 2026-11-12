@@ -16,6 +16,7 @@ router = APIRouter(dependencies=[Depends(require_admin)])
 SECTIONS = {
     "general": ("language", "timezone"),
     "scheduling": ("scan_hour", "report_daily", "report_monthly", "report_hour", "report_send_empty"),
+    "security": ("require_2fa",),
     "alerts": ("alert_min_severity",),
     "news": ("news_interval_minutes", "news_retention_days", "allow_private_feeds"),
 }
