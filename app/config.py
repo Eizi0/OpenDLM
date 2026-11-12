@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     demo: bool = False
     hibp_api_key: str = ""
     notify_urls: str = ""  # URLs Apprise séparées par des virgules
+    hudson_rock_key: str = ""  # clé API Hudson Rock (Cavalier v3)
     ransomware_live_key: str = ""  # clé API PRO de ransomware.live (gratuite)
     news_interval_minutes: int = 30
     news_retention_days: int = 90

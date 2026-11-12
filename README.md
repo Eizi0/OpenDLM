@@ -32,6 +32,7 @@ Variables d'environnement (voir `.env.example`) :
 | `OPENDLM_DEMO` | `true` pour le connecteur fictif |
 | `OPENDLM_HIBP_API_KEY` | Clé API Have I Been Pwned |
 | `OPENDLM_NOTIFY_URLS` | URLs [Apprise](https://github.com/caronc/apprise), séparées par des virgules (Discord, ntfy, e-mail, Matrix…) |
+| `OPENDLM_HUDSON_ROCK_KEY` | Clé API Hudson Rock (permission `search-by-domain`) |
 | `OPENDLM_RANSOMWARE_LIVE_KEY` | Clé API PRO ransomware.live (gratuite) |
 | `OPENDLM_NEWS_INTERVAL_MINUTES` | Fréquence de lecture des actus (défaut 30) |
 | `OPENDLM_NEWS_RETENTION_DAYS` | Durée de conservation des actus (défaut 90) |
@@ -44,6 +45,7 @@ Variables d'environnement (voir `.env.example`) :
 
 - **Have I Been Pwned** : nécessite une clé payante et un domaine vérifié sur le tableau de bord HIBP. Les données sont sous licence [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) : la source doit rester citée là où elles sont affichées.
 
+- **Hudson Rock (Cavalier v3)** : comptes de vos domaines dérobés par des logiciels espions (infostealers). Une clé dont le plan inclut la permission `search-by-domain` est nécessaire. Seules les 20 infections les plus récentes sont lues à chaque passage ; ni mot de passe, ni adresse IP, ni nom de machine ne sont conservés. Une fuite de ce type est classée « critique » : un simple changement de mot de passe ne suffit pas, les sessions ont pu être volées.
 - **FrenchBreaches** (flux RSS public) : veille indépendante sur les fuites en France, avec un niveau de fiabilité par annonce. Seuls le titre, un extrait et le lien sont conservés, avec renvoi vers la source.
 - **ransomware.live** (API PRO, clé gratuite) : revendications de groupes de rançongiciel. Ce sont des revendications, pas des faits établis.
 - **Flux RSS/Atom de votre choix**, ajoutés depuis la page Sources (les adresses internes sont refusées). Le flux CERT-FR est fourni désactivé : il traite de vulnérabilités, pas de fuites.

@@ -361,6 +361,7 @@ def sources_page(request: Request, session: Session = Depends(get_session)):
                      "count": session.scalar(select(func.count(NewsItem.id)).where(NewsItem.source_id == src.id)) or 0})
     leak_sources = [
         {"name": "Have I Been Pwned", "ok": bool(settings.hibp_api_key), "detail": "Clé API configurée" if settings.hibp_api_key else "Clé API manquante (OPENDLM_HIBP_API_KEY)"},
+        {"name": "Hudson Rock (logs infostealer)", "ok": bool(settings.hudson_rock_key), "detail": "Clé API configurée" if settings.hudson_rock_key else "Clé API manquante (OPENDLM_HUDSON_ROCK_KEY)"},
         {"name": "Connecteur de démonstration", "ok": settings.demo, "detail": "Actif : données fictives" if settings.demo else "Désactivé"},
     ]
     return templates.TemplateResponse(
