@@ -1,16 +1,16 @@
 {% extends "auth_base.html" %}
-{% block title %}Première configuration · OpenDLM{% endblock %}
+{% block title %}{{ _("First-run setup") }} · OpenDLM{% endblock %}
 {% block content %}
-<h1 style="font-size:22px">Créer le compte administrateur</h1>
-<div class="muted" style="margin-bottom:14px">Première utilisation : choisissez un nom d’utilisateur et un mot de passe d’au moins 12 caractères. Cette page disparaît une fois le compte créé.</div>
+<h1 style="font-size:22px">{{ _("Create the administrator account") }}</h1>
+<div class="muted" style="margin-bottom:14px">{{ _("First use: choose a username and a password of at least 12 characters. This page disappears once the account is created.") }}</div>
 {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
 <form method="post" action="/setup" class="stack">
-  <label for="username">Nom d’utilisateur</label>
+  <label for="username">{{ _("Username") }}</label>
   <input type="text" id="username" name="username" autocomplete="username" autofocus required>
-  <label for="password">Mot de passe</label>
+  <label for="password">{{ _("Password") }}</label>
   <input type="password" id="password" name="password" autocomplete="new-password" minlength="12" required>
-  <label for="confirm">Confirmer le mot de passe</label>
+  <label for="confirm">{{ _("Confirm password") }}</label>
   <input type="password" id="confirm" name="confirm" autocomplete="new-password" minlength="12" required>
-  <button class="btn primary" type="submit" style="justify-content:center">Créer le compte</button>
+  <button class="btn primary" type="submit" style="justify-content:center">{{ _("Create the account") }}</button>
 </form>
 {% endblock %}

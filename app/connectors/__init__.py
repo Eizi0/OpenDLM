@@ -5,12 +5,12 @@ from .demo import DemoConnector
 from .hibp import HibpConnector
 from .hudson_rock import HudsonRockConnector
 
-# Instance unique : le connecteur de démo garde en mémoire le nombre de passages par domaine.
+# Single instance: the demo connector remembers how many passes it made per domain.
 _demo = DemoConnector()
 
 
 def build_connectors() -> list[Connector]:
-    """Connecteurs actifs selon la configuration."""
+    """Active connectors according to the configuration."""
     connectors: list[Connector] = []
     if settings.demo:
         connectors.append(_demo)

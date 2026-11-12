@@ -43,7 +43,7 @@ def test_watch_words_add_dedupe_delete(logged_client):
 
 def test_sources_page_and_toggle(logged_client):
     page = logged_client.get("/sources")
-    assert page.status_code == 200 and "FrenchBreaches" in page.text and "Clé API manquante" in page.text
+    assert page.status_code == 200 and "FrenchBreaches" in page.text and "API key missing" in page.text
     with SessionLocal() as s:
         cert = s.query(NewsSource).filter(NewsSource.name.like("CERT-FR%")).one()
         assert cert.enabled is False
@@ -56,7 +56,7 @@ def test_sources_page_and_toggle(logged_client):
 def test_add_source_refuses_internal_and_invalid_urls(logged_client):
     for bad in ("http://127.0.0.1:8080/feed", "http://169.254.169.254/latest", "file:///etc/passwd", "ftp://93.184.216.34/x"):
         r = logged_client.post("/sources", data={"name": "Piège", "url": bad})
-        assert r.status_code == 303 and "error=" in r.headers["location"]
+        assert r.status_code == 303 and "e=" in r.headers["location"]
     with SessionLocal() as s:
         assert s.query(NewsSource).filter_by(name="Piège").count() == 0
 
@@ -78,4 +78,4 @@ def test_add_and_delete_custom_source_but_not_builtin(logged_client):
 def test_dashboard_shows_recent_mentions(logged_client):
     add_items(("Piratage Ciblex", ["Ciblex"], "credible"))
     page = logged_client.get("/")
-    assert "Actus qui vous concernent" in page.text and "Piratage Ciblex" in page.text
+    assert "News that concerns you" in page.text and "Piratage Ciblex" in page.text

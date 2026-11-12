@@ -42,7 +42,7 @@ def test_domain_page_shows_actions_per_status(logged_client):
     did = add_domain()
     add_finding(did, "resolved")
     page = logged_client.get(f"/domains/{did}").text
-    assert "Traitée" in page and "Rouvrir" in page and "Supprimer ce domaine" in page
+    assert "Handled" in page and "Reopen" in page and "Delete this domain" in page
 
 
 def test_domain_deletion_requires_exact_name_and_cascades(logged_client):
@@ -65,16 +65,16 @@ def test_dashboard_heartbeat_and_stale_warning(logged_client, monkeypatch):
     monkeypatch.setattr(settings, "demo", True)  # un connecteur actif : le scanner « devrait » tourner
     did = add_domain()
     page = logged_client.get("/").text
-    assert page.count('<span class="none"') == 60 and "Le scanner semble à l’arrêt" in page  # jamais scanné
+    assert page.count('<span class="none"') == 60 and "The scanner seems to be stopped." in page  # jamais scanné
     with SessionLocal() as s:
         s.add(ScanRun(domain_id=did, source="Démo", ok=True, new_count=1, started_at=datetime.now(timezone.utc)))
         s.commit()
     page = logged_client.get("/").text
-    assert 'class="bad"' in page and "Le scanner semble à l’arrêt" not in page
+    assert 'class="bad"' in page and "The scanner seems to be stopped." not in page
     with SessionLocal() as s:
         s.query(ScanRun).update({"started_at": datetime.now(timezone.utc) - timedelta(hours=40)})
         s.commit()
-    assert "Le scanner semble à l’arrêt" in logged_client.get("/").text
+    assert "The scanner seems to be stopped." in logged_client.get("/").text
 
 
 def test_no_stale_warning_without_connector_or_unverified_domain(logged_client, monkeypatch, cfg_override):
@@ -82,12 +82,12 @@ def test_no_stale_warning_without_connector_or_unverified_domain(logged_client, 
     cfg_override(hibp_api_key="")
     cfg_override(hudson_rock_key="")
     add_domain()
-    assert "Le scanner semble à l’arrêt" not in logged_client.get("/").text
+    assert "The scanner seems to be stopped." not in logged_client.get("/").text
     monkeypatch.setattr(settings, "demo", True)
     with SessionLocal() as s:
         s.query(Domain).update({"verified": False})
         s.commit()
-    assert "Le scanner semble à l’arrêt" not in logged_client.get("/").text
+    assert "The scanner seems to be stopped." not in logged_client.get("/").text
 
 
 def test_notifications_page_never_shows_secrets(logged_client, monkeypatch):
@@ -101,10 +101,10 @@ def test_notifications_page_never_shows_secrets(logged_client, monkeypatch):
 def test_notifications_test_without_channel_and_with_channel(logged_client, monkeypatch):
     monkeypatch.setattr(settings, "notify_urls", "")
     r = logged_client.post("/notifications/test")
-    assert "error=" in r.headers["location"]
-    from app import main
+    assert "e=no_channel" in r.headers["location"]
+    from app import notifier as notifier_module
     sent = []
     monkeypatch.setattr(settings, "notify_urls", "json://exemple")
-    monkeypatch.setattr(main.Notifier, "send", lambda self, t, b, markdown=False: sent.append(t) or True)
+    monkeypatch.setattr(notifier_module.Notifier, "send", lambda self, t, b, markdown=False: sent.append(t) or True)
     r = logged_client.post("/notifications/test")
-    assert "notice=" in r.headers["location"] and sent == ["[OpenDLM] Message de test"]
+    assert "n=test_sent" in r.headers["location"] and sent == ["[OpenDLM] Test message"]

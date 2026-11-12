@@ -92,13 +92,13 @@ def test_fetch_refuses_redirect_to_internal_network():
             return httpx.Response(302, headers={"location": "http://127.0.0.1:8080/secret"})
         pytest.fail("la requête vers le réseau interne ne doit jamais partir")
 
-    with pytest.raises(FeedError, match="interne"):
+    with pytest.raises(FeedError, match="Internal"):
         fetch(client_with(handler), PUBLIC, None, None, "ua", False)
 
 
 def test_fetch_rejects_oversized_feed(monkeypatch):
     monkeypatch.setattr(feeds, "MAX_BYTES", 1000)
-    with pytest.raises(FeedError, match="volumineux"):
+    with pytest.raises(FeedError, match="too large"):
         fetch(client_with(lambda r: httpx.Response(200, content=b"x" * 5000)), PUBLIC, None, None, "ua", False)
 
 
@@ -108,7 +108,7 @@ def test_fetch_http_error_is_explicit():
 
 
 def test_redirect_loop_is_cut():
-    with pytest.raises(FeedError, match="redirections"):
+    with pytest.raises(FeedError, match="Too many redirects"):
         fetch(client_with(lambda r: httpx.Response(302, headers={"location": PUBLIC})), PUBLIC, None, None, "ua", False)
 
 

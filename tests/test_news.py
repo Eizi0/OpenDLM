@@ -88,7 +88,7 @@ def test_internal_url_is_refused_at_refresh(session):
     src = make_source(session)
     src.url = "http://127.0.0.1:8080/feed"
     r = news.refresh_source(session, src, Spy(), client_returning())
-    assert "interne" in r.error and src.last_ok is False
+    assert "Internal" in r.error and src.last_ok is False
 
 
 def test_ransomware_live_without_key_is_skipped(session, cfg_override):
@@ -97,7 +97,7 @@ def test_ransomware_live_without_key_is_skipped(session, cfg_override):
     session.add(src)
     session.commit()
     r = news.refresh_source(session, src, Spy(), client_returning())
-    assert "Clé API manquante" in r.skipped
+    assert "API key missing" in r.skipped
     assert src.last_ok is None and src.last_error is None  # non configurée ≠ en panne : pas dans les problèmes du rapport
 
 
@@ -120,7 +120,7 @@ def test_ransomware_live_mapping_and_headers():
     assert "Barracuda" in e.excerpt and "texte attaquant" not in e.excerpt and "onion" not in e.excerpt
 
 
-@pytest.mark.parametrize("response,needle", [(httpx.Response(401), "clé"), (httpx.Response(429), "débit"), (httpx.Response(200, text="pas json"), "illisible"), (httpx.Response(200, json={"a": 1}), "format")])
+@pytest.mark.parametrize("response,needle", [(httpx.Response(401), "API key"), (httpx.Response(429), "rate limit"), (httpx.Response(200, text="pas json"), "unreadable"), (httpx.Response(200, json={"a": 1}), "format")])
 def test_ransomware_live_errors(response, needle):
     with pytest.raises(FeedError, match=needle):
         ransomware_live.fetch_recent(httpx.Client(transport=httpx.MockTransport(lambda r: response)), "k", "ua")
@@ -136,5 +136,5 @@ def test_seed_default_sources_is_idempotent(session):
     news.seed_default_sources(session)
     news.seed_default_sources(session)
     names = {s.name: s for s in session.query(NewsSource)}
-    assert set(names) == {"FrenchBreaches", "ransomware.live", "CERT-FR (avis de sécurité)"}
-    assert names["FrenchBreaches"].enabled and not names["CERT-FR (avis de sécurité)"].enabled
+    assert set(names) == {"FrenchBreaches", "ransomware.live", "CERT-FR (security advisories)"}
+    assert names["FrenchBreaches"].enabled and not names["CERT-FR (security advisories)"].enabled

@@ -19,23 +19,23 @@ log = logging.getLogger("opendlm.scheduler")
 def scan_all() -> None:
     connectors = build_connectors()
     if not connectors:
-        log.warning("Aucun connecteur actif (ni démo, ni clé HIBP) : scan ignoré")
+        log.warning("No active connector (no demo, no API key): scan skipped")
         return
     notifier = Notifier()
     with SessionLocal() as session:
         for domain in session.scalars(select(Domain).where(Domain.verified.is_(True))):
             try:
                 result = run_scan(session, domain, connectors, notifier)
-                log.info("scan %s : %d nouvelle(s), %d erreur(s)", domain.name, len(result.new), len(result.errors))
+                log.info("scan %s: %d new, %d error(s)", domain.name, len(result.new), len(result.errors))
             except Exception:
-                log.exception("scan %s en échec", domain.name)
+                log.exception("scan %s failed", domain.name)
 
 
 def refresh_news() -> None:
     notifier = Notifier()
     with SessionLocal() as session:
         for name, res in news.refresh_all(session, notifier).items():
-            log.info("actus %s : %d nouvelle(s), %d mention(s)%s", name, res.new, len(res.mentions), f", erreur : {res.error or res.skipped}" if (res.error or res.skipped) else "")
+            log.info("news %s: %d new, %d mention(s)%s", name, res.new, len(res.mentions), f", error: {res.error or res.skipped}" if (res.error or res.skipped) else "")
 
 
 def run_report(kind: str) -> None:
@@ -43,7 +43,7 @@ def run_report(kind: str) -> None:
         try:
             reports.run_scheduled(session, kind, Notifier())
         except Exception:
-            log.exception("rapport %s en échec", kind)
+            log.exception("report %s failed", kind)
 
 
 _scheduler: BackgroundScheduler | None = None

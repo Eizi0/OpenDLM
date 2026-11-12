@@ -19,39 +19,39 @@ def _day(raw: str | None) -> date | None:
 
 
 class HudsonRockConnector:
-    """Hudson Rock Cavalier (API v3) : comptes de vos domaines volés par des logiciels espions.
+    """Hudson Rock Cavalier (API v3): accounts of your domains stolen by infostealer malware.
 
-    Nécessite une clé dont le plan donne la permission « search-by-domain ».
-    Seules les 20 infections les plus récentes sont lues (tri par date décroissante) : suffisant
-    pour détecter les nouveautés à chaque passage. Ne conserve ni mot de passe, ni IP, ni nom de machine.
+    Needs a key whose plan grants the "search-by-domain" permission. Only the 20 most recent
+    infections are read (sorted by date, newest first), which is enough to spot new ones on each pass.
+    No password, IP address or machine name is kept.
     """
 
     name = "Hudson Rock"
 
     def __init__(self, api_key: str, user_agent: str, client: httpx.Client | None = None) -> None:
         self._headers = {"api-key": api_key, "user-agent": user_agent, "accept": "application/json"}
-        self._client = client or httpx.Client(timeout=100)  # la source peut mettre jusqu'à 90 s
+        self._client = client or httpx.Client(timeout=100)  # the API can take up to 90 s
 
     def check_domain(self, domain: str) -> list[Hit]:
         body = {"domains": [domain], "types": ["employees"], "sort_by": "date_compromised", "sort_direction": "desc"}
         try:
             r = self._client.post(f"{API}/search-by-domain", json=body, headers=self._headers)
         except httpx.HTTPError as e:
-            raise ConnectorError(f"Hudson Rock injoignable : {e}") from e
+            raise ConnectorError(f"Hudson Rock unreachable: {e}") from e
         if r.status_code == 429:
-            raise ConnectorError("Hudson Rock : limite de débit atteinte", retry_after=_retry_after(r))
+            raise ConnectorError("Hudson Rock: rate limit reached", retry_after=_retry_after(r))
         if r.status_code == 401:
-            raise ConnectorError("Hudson Rock : clé API refusée")
+            raise ConnectorError("Hudson Rock: API key rejected")
         if r.status_code == 403:
-            raise ConnectorError("Hudson Rock : permission « search-by-domain » absente de votre plan, ou domaine non autorisé")
+            raise ConnectorError("Hudson Rock: the \"search-by-domain\" permission is missing from your plan, or the domain is not allowed")
         if r.status_code == 404:
             return []
         if r.status_code != 200:
-            raise ConnectorError(f"Hudson Rock : réponse inattendue ({r.status_code})")
+            raise ConnectorError(f"Hudson Rock: unexpected response ({r.status_code})")
         try:
             data = r.json().get("data") or []
         except (ValueError, AttributeError) as e:
-            raise ConnectorError("Hudson Rock : réponse illisible") from e
+            raise ConnectorError("Hudson Rock: unreadable response") from e
         return list(_hits(data, domain))
 
 
@@ -68,14 +68,14 @@ def _hits(stealers: list, domain: str):
         if not isinstance(s, dict):
             continue
         day = _day(s.get("date_compromised"))
-        family = str(s.get("stealer_family") or "inconnu")[:40]
-        # Identifiant de poste stable mais non réversible : distingue deux infections le même jour.
+        family = str(s.get("stealer_family") or "unknown")[:40]
+        # Stable but irreversible machine id: tells two infections of the same day apart.
         machine = hashlib.sha256(f"{s.get('computer_name', '')}|{s.get('ip', '')}|{s.get('stealer', '')}".encode()).hexdigest()[:6]
-        breach = f"Logs infostealer {family} · {day.strftime('%d/%m/%Y') if day else 'date inconnue'} · poste {machine}"
+        breach = f"Infostealer logs {family} · {day.isoformat() if day else 'unknown date'} · machine {machine}"
         for c in s.get("credentials") or []:
             if not isinstance(c, dict):
                 continue
             user = str(c.get("username") or "").strip().lower()
-            # Les identifiants masqués (••••) ne permettent pas d'identifier l'adresse : on le dit sans la deviner.
-            identifier = user if user.endswith(suffix) and "•" not in user else f"[adresse masquée]{suffix}"
+            # Masked usernames (••••) do not identify the address: say so instead of guessing.
+            identifier = user if user.endswith(suffix) and "•" not in user else f"[masked address]{suffix}"
             yield Hit(identifier=identifier[:320], source=HudsonRockConnector.name, breach=breach, breach_date=day, data_classes=DATA_CLASSES)

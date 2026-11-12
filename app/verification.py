@@ -22,7 +22,7 @@ def txt_value(token: str) -> str:
 
 
 def check_dns_txt(domain: str, token: str) -> bool:
-    """Vrai si un enregistrement TXT du domaine contient la valeur attendue."""
+    """True if a TXT record of the domain holds the expected value."""
     try:
         answers = dns.resolver.resolve(domain, "TXT", lifetime=8)
     except (dns.exception.DNSException, OSError):

@@ -2,27 +2,27 @@
 {% block nav_home %}active{% endblock %}
 {% block content %}
 <header>
-  <h1>Tableau de bord</h1>
-  <div class="sub">Sources actives : {% if connectors %}{{ connectors | join(", ") }}{% else %}aucune (activer le mode démo ou renseigner une clé HIBP){% endif %}</div>
+  <h1>{{ _("Dashboard") }}</h1>
+  <div class="sub">{{ _("Active sources") }}: {% if connectors %}{{ connectors | join(", ") }}{% else %}{{ _("none (enable the demo mode or set an API key in Sources)") }}{% endif %}</div>
 </header>
 
 {% if stale %}
-<div class="alert" role="alert"><b>Le scanner semble à l’arrêt.</b> Dernier scan : {{ last_scan | local if last_scan else "jamais" }}. Vérifiez que le service tourne et consultez les journaux.</div>
+<div class="alert" role="alert"><b>{{ _("The scanner seems to be stopped.") }}</b> {{ _("Last scan") }}: {{ (last_scan | local) if last_scan else _("never") }}. {{ _("Check that the service is running and read the logs.") }}</div>
 {% endif %}
 
 <section class="kpis">
-  <div class="kpi {% if totals.new %}alert{% endif %}"><span class="muted">Nouvelles fuites à traiter</span><b>{{ totals.new }}</b></div>
-  <div class="kpi"><span class="muted">Domaines suivis</span><b>{{ totals.domains }}</b></div>
-  <div class="kpi"><span class="muted">Fuites enregistrées</span><b>{{ totals.total }}</b></div>
-  <div class="kpi {% if mentions %}alert{% endif %}"><span class="muted">Mentions d’actus (7 j)</span><b>{{ mentions | length }}</b></div>
+  <div class="kpi {% if totals.new %}alert{% endif %}"><span class="muted">{{ _("New leaks to handle") }}</span><b>{{ totals.new }}</b></div>
+  <div class="kpi"><span class="muted">{{ _("Monitored domains") }}</span><b>{{ totals.domains }}</b></div>
+  <div class="kpi"><span class="muted">{{ _("Recorded leaks") }}</span><b>{{ totals.total }}</b></div>
+  <div class="kpi {% if mentions %}alert{% endif %}"><span class="muted">{{ _("News mentions (7 d)") }}</span><b>{{ mentions | length }}</b></div>
 </section>
 
 <section class="card">
   <header>
-    <h2>Surveillance</h2>
+    <h2>{{ _("Monitoring") }}</h2>
     <form class="inline" method="post" action="/domains">
-      <input type="text" name="name" placeholder="exemple.fr" aria-label="Nom de domaine" required>
-      <button class="btn primary" type="submit">Ajouter un domaine</button>
+      <input type="text" name="name" placeholder="example.com" aria-label="{{ _('Domain name') }}" required>
+      <button class="btn primary" type="submit">{{ _("Add a domain") }}</button>
     </form>
   </header>
   {% for r in rows %}
@@ -30,34 +30,34 @@
     <div style="flex:1 1 220px">
       <div class="mono"><b>{{ r.domain.name }}</b></div>
       <div class="muted">
-        {% if r.domain.verified %}Propriété vérifiée{% else %}Vérification DNS requise{% endif %}
-        {% if r.last %} · dernier scan {{ r.last.started_at | local }}{% else %} · jamais scanné{% endif %}
+        {% if r.domain.verified %}{{ _("Ownership verified") }}{% else %}{{ _("DNS verification required") }}{% endif %}
+        · {% if r.last %}{{ _("last scan") }} {{ r.last.started_at | local }}{% else %}{{ _("never scanned") }}{% endif %}
       </div>
     </div>
     <div>
-      {% if not r.domain.verified %}<span class="pill warn">À vérifier</span>
-      {% elif r.new %}<span class="pill bad">{{ r.new }} nouvelle(s)</span>
-      {% else %}<span class="pill ok">Rien de nouveau</span>{% endif %}
+      {% if not r.domain.verified %}<span class="pill warn">{{ _("To verify") }}</span>
+      {% elif r.new %}<span class="pill bad">{{ _("%(n)d new", n=r.new) }}</span>
+      {% else %}<span class="pill ok">{{ _("Nothing new") }}</span>{% endif %}
     </div>
-    <div class="muted">{{ r.total }} fuite(s) enregistrée(s)</div>
+    <div class="muted">{{ _("%(n)d recorded leak(s)", n=r.total) }}</div>
     {% if r.domain.verified %}
     <div class="hb" aria-hidden="true">{% for b in r.bars %}<span class="{{ b.cls }}" title="{{ b.label }}"></span>{% endfor %}</div>
-    <div class="muted hbnote">{% if r.streak %}Aucune nouvelle fuite depuis {{ r.streak }} j{% else %}Nouvelle fuite récente{% endif %} · 60 derniers jours</div>
+    <div class="muted hbnote">{% if r.streak %}{{ _("No new leak for %(n)d day(s)", n=r.streak) }}{% else %}{{ _("Recent new leak") }}{% endif %} · {{ _("last 60 days") }}</div>
     {% endif %}
   </a>
   {% else %}
-  <div class="pad muted">Aucun domaine pour l’instant. Ajoutez le premier ci-dessus.</div>
+  <div class="pad muted">{{ _("No domain yet. Add the first one above.") }}</div>
   {% endfor %}
 </section>
 
 {% if mentions %}
 <section class="card">
-  <header><h2>Actus qui vous concernent</h2><a href="/news" style="color:var(--accent)">Fil complet</a></header>
+  <header><h2>{{ _("News that concerns you") }}</h2><a href="/news" style="color:var(--accent)">{{ _("Full feed") }}</a></header>
   {% for it in mentions[:5] %}
   <div class="row">
     <span class="pill accent">{{ it.matched | join(", ") }}</span>
     <a href="{{ it.url }}" rel="noopener noreferrer nofollow" target="_blank" style="flex:1 1 300px;font-weight:500">{{ it.title }}</a>
-    <span class="muted">{{ it.source.name }} · {{ it.published_at | local("%d/%m/%Y") }}</span>
+    <span class="muted">{{ it.source.name }} · {{ it.published_at | local("date") }}</span>
   </div>
   {% endfor %}
 </section>

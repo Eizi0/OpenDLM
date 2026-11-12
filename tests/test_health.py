@@ -13,7 +13,7 @@ def run(days_ago=0, hour=6, ok=True, baseline=False, new=0):
 
 def test_bars_cover_sixty_days_oldest_first():
     bars = health.build_bars([run(0)], NOW)
-    assert len(bars) == 60 and bars[-1]["label"].startswith("12/11/2026") and bars[0]["label"].startswith("14/09/2026")
+    assert len(bars) == 60 and bars[-1]["label"].startswith("2026-11-12") and bars[0]["label"].startswith("2026-09-14")
 
 
 def test_priority_bad_over_warn_over_ok_over_none():
@@ -23,7 +23,7 @@ def test_priority_bad_over_warn_over_ok_over_none():
         run(2, ok=True),                            # avant-hier : propre
     ], NOW)
     assert [b["cls"] for b in bars[-4:]] == ["none", "ok", "warn", "bad"]
-    assert "2 nouvelle(s) fuite(s)" in bars[-1]["label"]
+    assert "2 new leak(s)" in bars[-1]["label"]
 
 
 def test_baseline_run_is_not_a_leak_even_with_findings():

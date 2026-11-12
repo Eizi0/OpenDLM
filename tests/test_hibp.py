@@ -32,7 +32,7 @@ def test_404_means_no_breach():
     assert connector(lambda r: httpx.Response(404)).check_domain("exemple.fr") == []
 
 
-@pytest.mark.parametrize("status,needle", [(401, "clé"), (403, "vérifié")])
+@pytest.mark.parametrize("status,needle", [(401, "API key"), (403, "not verified")])
 def test_auth_errors_are_explicit(status, needle):
     with pytest.raises(ConnectorError, match=needle):
         connector(lambda r: httpx.Response(status)).check_domain("exemple.fr")

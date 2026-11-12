@@ -28,6 +28,7 @@ def session():
 def client():
     """Application complète sur une base vierge (migrations appliquées au démarrage)."""
     from app import main, security
+    from app.web import auth
     from app.runtime_config import cfg
 
     Base.metadata.drop_all(app_engine)
@@ -35,7 +36,7 @@ def client():
         conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
     cfg._overrides.clear()
     cfg.invalidate()
-    main.throttle = security.LoginThrottle()
+    auth.throttle = security.LoginThrottle()
     with TestClient(main.app, follow_redirects=False) as c:
         yield c
 

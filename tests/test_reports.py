@@ -30,19 +30,19 @@ def finding(domain, ident, status="new", when=NOW - timedelta(hours=3), severity
 
 def test_daily_period_and_label():
     start, end, label = reports.period_for("daily", NOW)
-    assert end - start == timedelta(hours=24) and label == "12 novembre 2026"
+    assert end - start == timedelta(hours=24) and label == {"type": "day", "date": "2026-11-12"}
 
 
 def test_monthly_period_is_previous_calendar_month_across_dst():
     start, end, label = reports.period_for("monthly", NOW)
-    assert label == "octobre 2026"
+    assert label == {"type": "month", "year": 2026, "month": 10}
     assert start == datetime(2026, 9, 30, 22, 0, tzinfo=timezone.utc)  # 1er oct 00:00 à Paris (UTC+2)
     assert end == datetime(2026, 10, 31, 23, 0, tzinfo=timezone.utc)  # 1er nov 00:00 à Paris (UTC+1, heure d'hiver)
 
 
 def test_monthly_period_in_january_rolls_back_to_december():
     _, _, label = reports.period_for("monthly", datetime(2027, 1, 5, 6, 0, tzinfo=timezone.utc))
-    assert label == "décembre 2026"
+    assert label == {"type": "month", "year": 2026, "month": 12}
 
 
 def test_report_counts_only_real_new_findings_in_period(session):
@@ -58,7 +58,7 @@ def test_report_counts_only_real_new_findings_in_period(session):
     names = [f["identifier"] for f in r.data["domains"][0]["new"]]
     assert sorted(names) == ["acquittee@exemple.fr", "nouvelle@exemple.fr"]
     assert r.data["totals"]["new_findings"] == 2 and r.data["totals"]["open"] == 2  # nouvelle + ancienne encore « new »
-    assert r.data["empty"] is False and "2 nouvelle(s) fuite(s)" in r.title
+    assert r.data["empty"] is False and "2 new leak(s)" in reports.title_text(r)
 
 
 def test_findings_sorted_by_severity(session):
@@ -84,18 +84,18 @@ def test_mentions_use_publication_date_and_ignore_unmatched(session):
     session.commit()
     r = reports.build_report(session, "daily", NOW)
     assert [m["title"] for m in r.data["mentions"]] == ["Titre ok"]
-    assert r.data["mentions"][0]["reliability"] == "Revendiquée (crédible)" and r.data["totals"]["news"] == 2
+    assert r.data["mentions"][0]["reliability"] == "credible" and r.data["totals"]["news"] == 2
 
 
 def test_problems_listed_and_empty_flag(session):
     make_domain(session)
     r = reports.build_report(session, "daily", NOW)
-    assert r.data["empty"] is True and "rien à signaler" in r.title
+    assert r.data["empty"] is True and "nothing to report" in reports.title_text(r)
     d = session.query(Domain).one()
     session.add(ScanRun(domain_id=d.id, source="Hudson Rock", ok=False, error="limite de débit atteinte", started_at=NOW - timedelta(hours=1)))
     session.commit()
     r2 = reports.build_report(session, "daily", NOW)
-    assert r2.data["problems"] == ["Hudson Rock : limite de débit atteinte"] and r2.data["empty"] is False
+    assert r2.data["problems"] == [{"source": "Hudson Rock", "message": "limite de débit atteinte"}] and r2.data["empty"] is False
 
 
 def test_unconfigured_source_is_not_reported_as_a_problem(session):
@@ -104,7 +104,7 @@ def test_unconfigured_source_is_not_reported_as_a_problem(session):
     session.add(NewsSource(name="Flux cassé", kind="rss", enabled=True, last_ok=False, last_error="Réponse HTTP 503"))
     session.add(NewsSource(name="Flux coupé", kind="rss", enabled=False, last_ok=False, last_error="ancien"))
     session.commit()
-    assert reports.build_report(session, "daily", NOW).data["problems"] == ["Flux cassé : Réponse HTTP 503"]
+    assert reports.build_report(session, "daily", NOW).data["problems"] == [{"source": "Flux cassé", "message": "Réponse HTTP 503"}]
 
 
 def test_markdown_content_and_attribution(session):
@@ -112,8 +112,8 @@ def test_markdown_content_and_attribution(session):
     session.add(finding(d, "c.martin@exemple.fr", severity="critical", source="Hudson Rock"))
     session.commit()
     md = reports.render_markdown(reports.build_report(session, "daily", NOW))
-    assert md.startswith("# Rapport quotidien · 12 novembre 2026")
-    assert "`c.martin@exemple.fr`" in md and "**Critique**" in md and "Have I Been Pwned" in md and "aucun mot de passe" in md
+    assert md.startswith("# Daily report · 2026-11-12")
+    assert "`c.martin@exemple.fr`" in md and "**Critical**" in md and "Have I Been Pwned" in md and "does not store any password" in md
 
 
 def test_unknown_kind_is_rejected(session):
@@ -167,14 +167,14 @@ def test_report_pages_require_login(client):
 
 def test_generate_view_and_export(logged_client):
     c = logged_client
-    assert "Aucun rapport" in c.get("/reports").text
+    assert "No report yet" in c.get("/reports").text
     r = c.post("/reports/generate", data={"kind": "daily"})
     assert r.status_code == 303
     page = c.get(r.headers["location"])
-    assert page.status_code == 200 and "Rien à signaler" in page.text and "Télécharger Markdown" in page.text
+    assert page.status_code == 200 and "Nothing to report" in page.text and "Download Markdown" in page.text
     rid = r.headers["location"].rsplit("/", 1)[1]
     md = c.get(f"/reports/{rid}/export.md")
-    assert md.status_code == 200 and "attachment" in md.headers["content-disposition"] and md.text.startswith("# Rapport quotidien")
+    assert md.status_code == 200 and "attachment" in md.headers["content-disposition"] and md.text.startswith("# Daily report")
     html = c.get(f"/reports/{rid}/export.html")
     assert "<!doctype html>" in html.text and "Have I Been Pwned" in html.text and "attachment" in html.headers["content-disposition"]
     assert c.post("/reports/generate", data={"kind": "hebdo"}).status_code == 422
@@ -185,7 +185,7 @@ def test_send_without_channel_explains(logged_client, monkeypatch):
     monkeypatch.setattr(settings, "notify_urls", "")
     rid = logged_client.post("/reports/generate", data={"kind": "monthly"}).headers["location"].rsplit("/", 1)[1]
     r = logged_client.post(f"/reports/{rid}/send")
-    assert r.status_code == 303 and "error=" in r.headers["location"]
+    assert r.status_code == 303 and "e=no_channel" in r.headers["location"]
     with SessionLocal() as s:
         assert s.get(Report, int(rid)).sent_at is None
 

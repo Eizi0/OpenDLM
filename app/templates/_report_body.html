@@ -1,48 +1,48 @@
 <div class="paper">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
     <div>
-      <div class="eyebrow">OpenDLM · rapport {{ kind_label[d.kind] }}</div>
-      <h2>{{ d.label }}</h2>
-      <div class="sub">{{ d.totals.domains }} domaine(s) surveillé(s) · généré le {{ d.generated }}</div>
+      <div class="eyebrow">{{ _("OpenDLM · %(kind)s report", kind=kind_label(d.kind)) }}</div>
+      <h2>{{ report_label(d.label) }}</h2>
+      <div class="sub">{{ _("%(n)d monitored domain(s)", n=d.totals.domains) }} · {{ _("generated on %(date)s", date=fmt_date(d.generated)) }}</div>
     </div>
-    {% if d.totals.new_findings %}<span class="badge b-bad">{{ d.totals.new_findings }} nouvelle(s) fuite(s)</span>
-    {% elif d.empty %}<span class="badge b-ok">Rien à signaler</span>
-    {% else %}<span class="badge b-warn">À consulter</span>{% endif %}
+    {% if d.totals.new_findings %}<span class="badge b-bad">{{ _("%(n)d new leak(s)", n=d.totals.new_findings) }}</span>
+    {% elif d.empty %}<span class="badge b-ok">{{ _("Nothing to report") }}</span>
+    {% else %}<span class="badge b-warn">{{ _("To review") }}</span>{% endif %}
   </div>
 
   <div class="figs">
-    <div class="fig"><span>Nouvelles fuites</span><b>{{ d.totals.new_findings }}</b></div>
-    <div class="fig"><span>Restant à traiter</span><b>{{ d.totals.open }}</b></div>
-    <div class="fig"><span>Mentions d’actus</span><b>{{ d.totals.mentions }}</b></div>
-    <div class="fig"><span>Actus lues</span><b>{{ d.totals.news }}</b></div>
+    <div class="fig"><span>{{ _("New leaks") }}</span><b>{{ d.totals.new_findings }}</b></div>
+    <div class="fig"><span>{{ _("Left to handle") }}</span><b>{{ d.totals.open }}</b></div>
+    <div class="fig"><span>{{ _("News mentions") }}</span><b>{{ d.totals.mentions }}</b></div>
+    <div class="fig"><span>{{ _("News read") }}</span><b>{{ d.totals.news }}</b></div>
   </div>
 
   {% for dom in d.domains if dom.new %}
   <h3>{{ dom.name }}</h3>
   {% for f in dom.new %}
   <div class="item {{ f.severity }}">
-    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><code>{{ f.identifier }}</code><span class="sev">{{ f.severity_label }}</span></div>
-    <div>{{ f.breach }} <span class="meta">· {{ f.source }}{% if f.breach_date %} · fuite du {{ f.breach_date }}{% endif %}</span></div>
-    {% if f.data_classes %}<div class="meta">Données : {{ f.data_classes | join(", ") }}</div>{% endif %}
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><code>{{ f.identifier }}</code><span class="sev">{{ severity_label(f.severity) }}</span></div>
+    <div>{{ f.breach }} <span class="meta">· {{ f.source }}{% if f.breach_date %} · {{ _("leaked on %(date)s", date=fmt_date(f.breach_date)) }}{% endif %}</span></div>
+    {% if f.data_classes %}<div class="meta">{{ _("Data") }}: {{ f.data_classes | join(", ") }}</div>{% endif %}
   </div>
   {% endfor %}
   {% endfor %}
 
   {% if d.mentions %}
-  <h3>Actus qui vous concernent</h3>
+  <h3>{{ _("News that concerns you") }}</h3>
   {% for m in d.mentions %}
   <div class="item low">
     <b>{% if m.url %}<a href="{{ m.url }}" rel="noopener noreferrer nofollow">{{ m.title }}</a>{% else %}{{ m.title }}{% endif %}</b>
-    <div class="meta">« {{ m.matched | join(", ") }} » · {{ m.source }}{% if m.reliability %} · {{ m.reliability }}{% endif %} · {{ m.published }}</div>
+    <div class="meta">[{{ m.matched | join(", ") }}] · {{ m.source }}{% if m.reliability %} · {{ reliability_label(m.reliability) }}{% endif %} · {{ fmt_date(m.published) }}</div>
   </div>
   {% endfor %}
   {% endif %}
 
   {% if d.problems %}
-  <h3>État des sources</h3>
-  {% for p in d.problems %}<div class="item"><span class="meta" style="color:#1B2230">{{ p }}</span></div>{% endfor %}
+  <h3>{{ _("Source status") }}</h3>
+  {% for p in d.problems %}<div class="item"><span class="meta" style="color:#1B2230">{{ p.source }}: {{ _(p.message) }}</span></div>{% endfor %}
   {% endif %}
 
-  {% if d.empty %}<p style="margin-top:22px">Rien à signaler sur la période.</p>{% endif %}
-  <div class="foot">{{ attribution }}</div>
+  {% if d.empty %}<p style="margin-top:22px">{{ _("Nothing to report for this period.") }}</p>{% endif %}
+  <div class="foot">{{ attribution() }}</div>
 </div>

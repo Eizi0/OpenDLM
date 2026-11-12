@@ -3,23 +3,25 @@ import logging
 import apprise
 
 from . import channels
+from .config import settings
+from .i18n import fmt_date, t
+from .labels import SEVERITY_ORDER, severity_label
 from .models import Finding
 
 log = logging.getLogger("opendlm.notifier")
 
-SEVERITY_LABEL = {"critical": "Critique", "high": "Élevée", "low": "Faible"}
-SEVERITY_ORDER = {"critical": 0, "high": 1, "low": 2}
+__all__ = ["Notifier", "format_alert", "SEVERITY_ORDER"]
 
 
 def format_alert(domain: str, findings: list[Finding]) -> tuple[str, str]:
-    """Titre et corps d'une alerte. Jamais de mot de passe, seulement des métadonnées."""
+    """Alert title and body. Never contains a password, only metadata."""
     ordered = sorted(findings, key=lambda f: SEVERITY_ORDER.get(f.severity, 3))
-    title = f"[OpenDLM] {len(ordered)} nouvelle(s) fuite(s) sur {domain}"
+    title = t("[OpenDLM] %(n)d new leak(s) on %(domain)s", n=len(ordered), domain=domain)
     lines = []
     for f in ordered:
-        when = f" · fuite du {f.breach_date.strftime('%d/%m/%Y')}" if f.breach_date else ""
-        data = f" · données : {', '.join(f.data_classes)}" if f.data_classes else ""
-        lines.append(f"- {SEVERITY_LABEL.get(f.severity, f.severity)} · {f.identifier} · {f.breach} ({f.source}){when}{data}")
+        when = t(" · leaked on %(date)s", date=fmt_date(f.breach_date)) if f.breach_date else ""
+        data = t(" · data: %(classes)s", classes=", ".join(f.data_classes)) if f.data_classes else ""
+        lines.append(f"- {severity_label(f.severity)} · {f.identifier} · {f.breach} ({f.source}){when}{data}")
     return title, "\n".join(lines)
 
 
@@ -37,14 +39,15 @@ class Notifier:
         return self.send(title, body)
 
     def send(self, title: str, body: str, markdown: bool = False) -> bool:
-        if not self._urls:
-            log.info("Aucun canal configuré. Message : %s\n%s", title, body)
+        urls = self._urls
+        if not urls:
+            log.info("No notification channel configured. Message: %s\n%s", title, body)
             return False
         ap = apprise.Apprise()
-        for url in self._urls:
+        for url in urls:
             ap.add(url)
         fmt = apprise.NotifyFormat.MARKDOWN if markdown else apprise.NotifyFormat.TEXT
         ok = ap.notify(title=title, body=body, body_format=fmt)
         if not ok:
-            log.error("Échec de l'envoi : %s", title)
+            log.error("Delivery failed: %s", title)
         return bool(ok)

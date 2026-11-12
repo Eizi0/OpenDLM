@@ -41,10 +41,10 @@ def test_request_shape_and_hit_mapping():
     assert seen["url"].endswith("/json/v3/search-by-domain") and seen["headers"]["api-key"] == "cle"
     assert b'"domains":["exemple.fr"]' in seen["body"].replace(b" ", b"") and b"employees" in seen["body"]
     ids = sorted({h.identifier for h in hits})
-    assert ids == ["[adresse masquée]@exemple.fr", "c.martin@exemple.fr"]  # minuscules, masqué signalé sans être deviné
+    assert ids == ["[masked address]@exemple.fr", "c.martin@exemple.fr"]  # lowercased; masked flagged, never guessed
     h = next(h for h in hits if h.identifier == "c.martin@exemple.fr")
     assert h.breach_date == date(2026, 11, 9) and h.source == "Hudson Rock"
-    assert "RedLine" in h.breach and "09/11/2026" in h.breach
+    assert "RedLine" in h.breach and "2026-11-09" in h.breach
     assert severity(h) == "critical"
 
 
@@ -64,8 +64,8 @@ def test_same_infection_collapses_but_two_machines_stay_distinct():
 
 
 @pytest.mark.parametrize("response,needle", [
-    (httpx.Response(401), "clé"), (httpx.Response(403), "permission"), (httpx.Response(500), "500"),
-    (httpx.Response(200, text="pas du json"), "illisible"),
+    (httpx.Response(401), "API key"), (httpx.Response(403), "permission"), (httpx.Response(500), "500"),
+    (httpx.Response(200, text="pas du json"), "unreadable"),
 ])
 def test_errors_are_explicit(response, needle):
     with pytest.raises(ConnectorError, match=needle):
@@ -96,7 +96,7 @@ def test_full_scan_flow_silent_baseline_then_critical_alert(session):
     r1 = run_scan(session, d, [c], Spy())
     assert r1.new == [] and sent == []
     r2 = run_scan(session, d, [c], Spy())
-    assert {f.identifier for f in r2.new} == {"c.martin@exemple.fr", "[adresse masquée]@exemple.fr"}
+    assert {f.identifier for f in r2.new} == {"c.martin@exemple.fr", "[masked address]@exemple.fr"}
     assert all(f.severity == "critical" for f in r2.new) and len(sent) == 1
 
 

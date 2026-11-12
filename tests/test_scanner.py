@@ -107,5 +107,5 @@ def test_alert_text_has_no_secret_fields(session):
     f = Finding(domain_id=d.id, identifier="x@exemple.fr", source="HIBP", breach="B", breach_date=date(2024, 5, 1),
                 data_classes=["Passwords"], severity="high")
     title, body = format_alert(d.name, [f])
-    assert "x@exemple.fr" in body and "Élevée" in body and "01/05/2024" in body
-    assert "1 nouvelle" in title
+    assert "x@exemple.fr" in body and "High" in body and "2024-05-01" in body
+    assert "1 new" in title

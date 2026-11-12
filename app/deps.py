@@ -13,7 +13,7 @@ def get_session():
 
 
 class LoginRequired(Exception):
-    """Levée quand une page protégée est demandée sans session valide."""
+    """Raised when a protected page is requested without a valid session."""
 
 
 def has_users(session: Session) -> bool:

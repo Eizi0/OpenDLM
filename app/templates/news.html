@@ -1,39 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Actus leaks · OpenDLM{% endblock %}
+{% block title %}{{ _("Leak news") }} · OpenDLM{% endblock %}
 {% block nav_news %}active{% endblock %}
 {% block content %}
 <header style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;align-items:flex-end">
   <div>
-    <h1>Actus leaks</h1>
-    <div class="sub">Annonces de fuites agrégées depuis vos sources. Seuls le titre, un extrait et le lien sont conservés.</div>
+    <h1>{{ _("Leak news") }}</h1>
+    <div class="sub">{{ _("Leak announcements gathered from your sources. Only the title, an excerpt and the link are kept.") }}</div>
   </div>
-  <a class="btn" href="/sources">Gérer les sources</a>
+  <a class="btn" href="/sources">{{ _("Manage sources") }}</a>
 </header>
 
 {% if recent_mentions %}
 <section class="feature">
-  <div style="font-weight:600;margin-bottom:8px">Mentions de vos mots surveillés (7 derniers jours)</div>
+  <div style="font-weight:600;margin-bottom:8px">{{ _("Mentions of your watched words (last 7 days)") }}</div>
   {% for it in recent_mentions %}
   <div style="padding:8px 0;border-top:1px solid #3A3A66">
     <span class="pill accent">{{ it.matched | join(", ") }}</span>
     <a href="{{ it.url }}" rel="noopener noreferrer nofollow" target="_blank" style="font-weight:500;margin-left:6px">{{ it.title }}</a>
-    <span class="muted"> · {{ it.source.name }} · {{ it.published_at | local("%d/%m/%Y") }}</span>
+    <span class="muted"> · {{ it.source.name }} · {{ it.published_at | local("date") }}</span>
   </div>
   {% endfor %}
 </section>
 {% endif %}
 
 <form method="get" action="/news" class="inline" style="align-items:center">
-  <select name="source" aria-label="Source">
-    <option value="">Toutes les sources</option>
+  <select name="source" aria-label="{{ _('Source') }}">
+    <option value="">{{ _("All sources") }}</option>
     {% for s in sources %}<option value="{{ s.id }}" {% if filters.source == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
   </select>
-  <select name="reliability" aria-label="Fiabilité">
-    <option value="">Toute fiabilité</option>
-    {% for key, label in reliability_label.items() %}<option value="{{ key }}" {% if filters.reliability == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  <select name="reliability" aria-label="{{ _('Reliability') }}">
+    <option value="">{{ _("Any reliability") }}</option>
+    {% for code in reliability_codes %}<option value="{{ code }}" {% if filters.reliability == code %}selected{% endif %}>{{ reliability_label(code) }}</option>{% endfor %}
   </select>
-  <label class="check"><input type="checkbox" name="mentions" value="1" {% if filters.mentions %}checked{% endif %}> Seulement mes mots</label>
-  <button class="btn" type="submit">Filtrer</button>
+  <label class="check"><input type="checkbox" name="mentions" value="1" {% if filters.mentions %}checked{% endif %}> {{ _("Only my words") }}</label>
+  <button class="btn" type="submit">{{ _("Filter") }}</button>
 </form>
 
 <section style="display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start">
@@ -42,8 +42,8 @@
     <article class="card pad">
       <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12px">
         <span style="color:var(--info);font-weight:600">{{ it.source.name }}</span>
-        <span class="muted">{{ it.published_at | local("%d/%m/%Y %H:%M") }}</span>
-        {% if it.reliability %}<span class="pill {{ 'ok' if it.reliability == 'confirmed' else 'warn' if it.reliability in ('credible','claimed') else '' }}">{{ reliability_label[it.reliability] }}</span>{% endif %}
+        <span class="muted">{{ it.published_at | local }}</span>
+        {% if it.reliability %}<span class="pill {{ 'ok' if it.reliability == 'confirmed' else 'warn' if it.reliability in ('credible','claimed') else '' }}">{{ reliability_label(it.reliability) }}</span>{% endif %}
         {% if it.matched %}<span class="pill accent">{{ it.matched | join(", ") }}</span>{% endif %}
       </div>
       <h3 style="margin:8px 0 4px;font-size:16px">
@@ -52,33 +52,33 @@
       {% if it.excerpt %}<div class="muted" style="font-size:13px">{{ it.excerpt }}</div>{% endif %}
     </article>
     {% else %}
-    <div class="card pad muted">Aucune actu pour ces critères. Les sources sont interrogées toutes les 30 minutes.</div>
+    <div class="card pad muted">{{ _("No news for these criteria. Sources are polled every 30 minutes.") }}</div>
     {% endfor %}
     {% if pages > 1 %}
     <nav style="display:flex;gap:10px;align-items:center;justify-content:center">
       {% set q = "&source=" ~ (filters.source or "") ~ "&reliability=" ~ (filters.reliability or "") ~ "&mentions=" ~ filters.mentions %}
-      {% if page > 1 %}<a class="btn small" href="/news?page={{ page - 1 }}{{ q }}">Précédent</a>{% endif %}
-      <span class="muted">Page {{ page }} / {{ pages }} · {{ total }} actus</span>
-      {% if page < pages %}<a class="btn small" href="/news?page={{ page + 1 }}{{ q }}">Suivant</a>{% endif %}
+      {% if page > 1 %}<a class="btn small" href="/news?page={{ page - 1 }}{{ q }}">{{ _("Previous") }}</a>{% endif %}
+      <span class="muted">{{ _("Page %(page)d of %(pages)d · %(total)d news items", page=page, pages=pages, total=total) }}</span>
+      {% if page < pages %}<a class="btn small" href="/news?page={{ page + 1 }}{{ q }}">{{ _("Next") }}</a>{% endif %}
     </nav>
     {% endif %}
   </div>
 
   <aside style="flex:1 1 300px;min-width:0" class="card">
-    <header><h2>Mots surveillés</h2></header>
+    <header><h2>{{ _("Watched words") }}</h2></header>
     <div class="pad" style="display:flex;flex-wrap:wrap;gap:8px">
       {% for w in words %}
       <form method="post" action="/watch-words/{{ w.id }}/delete" class="chip">
         <span>{{ w.term }}</span>
-        <button type="submit" aria-label="Retirer {{ w.term }}">×</button>
+        <button type="submit" aria-label="{{ _('Remove %(term)s', term=w.term) }}">×</button>
       </form>
-      {% else %}<span class="muted">Aucun mot pour l’instant.</span>{% endfor %}
+      {% else %}<span class="muted">{{ _("No word yet.") }}</span>{% endfor %}
     </div>
     <form method="post" action="/watch-words" class="inline pad" style="padding-top:0">
-      <input type="text" name="term" placeholder="Nom d’entreprise, fournisseur…" aria-label="Nouveau mot surveillé" minlength="3" maxlength="120" required style="min-width:0;flex:1 1 160px">
-      <button class="btn primary" type="submit">Ajouter</button>
+      <input type="text" name="term" placeholder="{{ _('Company, supplier…') }}" aria-label="{{ _('New watched word') }}" minlength="3" maxlength="120" required style="min-width:0;flex:1 1 160px">
+      <button class="btn primary" type="submit">{{ _("Add") }}</button>
     </form>
-    <div class="foot">Vos noms de domaine suivis sont toujours surveillés. Une actu qui contient l’un de ces mots déclenche une alerte.</div>
+    <div class="foot">{{ _("Your monitored domain names are always watched. News containing one of these words triggers an alert.") }}</div>
   </aside>
 </section>
 {% endblock %}

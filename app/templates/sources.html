@@ -1,53 +1,51 @@
 {% extends "base.html" %}
-{% block title %}Sources · OpenDLM{% endblock %}
+{% block title %}{{ _("Sources") }} · OpenDLM{% endblock %}
 {% block nav_sources %}active{% endblock %}
 {% block content %}
 <header>
-  <h1>Sources</h1>
-  <div class="sub">Chaque source est indépendante. Les clés restent dans les variables d’environnement de votre serveur.</div>
+  <h1>{{ _("Sources") }}</h1>
+  <div class="sub">{{ _("Each source is independent.") }}</div>
 </header>
 
-<div class="note">Vous êtes responsable du respect des conditions d’utilisation de chaque source. OpenDLM n’interroge que des API et flux publics, avec un User-Agent identifié, et ne conserve jamais le contenu d’une fuite.</div>
-
-{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+<div class="note">{{ _("You are responsible for complying with the terms of use of each source. OpenDLM only queries public APIs and feeds, with an identified User-Agent, and never keeps leaked content.") }}</div>
 
 <section class="card">
-  <header><h2>Vérification de vos domaines</h2></header>
+  <header><h2>{{ _("Leak checks for your domains") }}</h2></header>
   {% for s in leak_sources %}
   <div class="row">
     <div style="flex:1 1 200px"><b>{{ s.name }}</b></div>
-    <span class="pill {{ 'ok' if s.ok else '' }}">{{ "Actif" if s.ok else "Inactif" }}</span>
+    <span class="pill {{ 'ok' if s.ok else '' }}">{{ _("Active") if s.ok else _("Inactive") }}</span>
     <span class="muted">{{ s.detail }}</span>
   </div>
   {% endfor %}
-  <div class="row"><div style="flex:1 1 200px"><b>Canaux de notification</b></div>
-    <span class="pill {{ 'ok' if notify_count else 'warn' }}">{{ notify_count }} configuré(s)</span>
-    <span class="muted">{% if notify_count %}Variable OPENDLM_NOTIFY_URLS{% else %}Aucun canal : les alertes restent dans les journaux (OPENDLM_NOTIFY_URLS){% endif %}</span></div>
+  <div class="row"><div style="flex:1 1 200px"><b>{{ _("Notification channels") }}</b></div>
+    <span class="pill {{ 'ok' if notify_count else 'warn' }}">{{ _("%(n)d configured", n=notify_count) }}</span>
+    <a class="muted" href="/notifications" style="color:var(--accent)">{{ _("Manage channels") }}</a></div>
 </section>
 
 <section class="card">
-  <header><h2>Actus</h2></header>
+  <header><h2>{{ _("News") }}</h2></header>
   {% for r in rows %}
   <div class="row">
     <div style="flex:1 1 240px;min-width:0">
       <div><b>{{ r.src.name }}</b> <span class="muted">· {{ r.kind }}</span></div>
       {% if r.src.url %}<div class="mono muted" style="font-size:12px">{{ r.src.url }}</div>{% endif %}
-      <div class="muted" style="font-size:12px">{{ r.count }} actu(s) · dernier passage {{ r.src.last_fetch_at | local }}</div>
-      {% if r.src.last_error %}<div style="color:var(--warn);font-size:13px">{{ r.src.last_error }}</div>{% endif %}
+      <div class="muted" style="font-size:12px">{{ _("%(n)d news item(s)", n=r.count) }} · {{ _("last pass") }} {{ r.src.last_fetch_at | local }}</div>
+      {% if r.src.last_error %}<div style="color:var(--warn);font-size:13px">{{ _(r.src.last_error) }}</div>{% endif %}
     </div>
     <span class="pill {{ r.tone }}">{{ r.status }}</span>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <form method="post" action="/sources/{{ r.src.id }}/refresh"><button class="btn small" type="submit" {% if not r.src.enabled %}disabled{% endif %}>Actualiser</button></form>
-      <form method="post" action="/sources/{{ r.src.id }}/toggle"><button class="btn small" type="submit">{{ "Désactiver" if r.src.enabled else "Activer" }}</button></form>
-      {% if not r.src.builtin %}<form method="post" action="/sources/{{ r.src.id }}/delete"><button class="btn small" type="submit">Supprimer</button></form>{% endif %}
+      <form method="post" action="/sources/{{ r.src.id }}/refresh"><button class="btn small" type="submit" {% if not r.src.enabled %}disabled{% endif %}>{{ _("Refresh") }}</button></form>
+      <form method="post" action="/sources/{{ r.src.id }}/toggle"><button class="btn small" type="submit">{{ _("Disable") if r.src.enabled else _("Enable") }}</button></form>
+      {% if not r.src.builtin %}<form method="post" action="/sources/{{ r.src.id }}/delete"><button class="btn small" type="submit">{{ _("Delete") }}</button></form>{% endif %}
     </div>
   </div>
   {% endfor %}
   <form method="post" action="/sources" class="inline pad" style="border-top:1px solid var(--line2)">
-    <input type="text" name="name" placeholder="Nom de la source" aria-label="Nom de la source" maxlength="80" required style="min-width:0;flex:1 1 180px">
-    <input type="text" name="url" placeholder="https://exemple.fr/feed.xml" aria-label="URL du flux RSS ou Atom" maxlength="1000" required style="min-width:0;flex:2 1 280px">
-    <button class="btn primary" type="submit">Ajouter un flux</button>
+    <input type="text" name="name" placeholder="{{ _('Source name') }}" aria-label="{{ _('Source name') }}" maxlength="80" required style="min-width:0;flex:1 1 180px">
+    <input type="text" name="url" placeholder="https://example.com/feed.xml" aria-label="{{ _('RSS or Atom feed URL') }}" maxlength="1000" required style="min-width:0;flex:2 1 280px">
+    <button class="btn primary" type="submit">{{ _("Add a feed") }}</button>
   </form>
-  <div class="foot">Seuls les flux publics http(s) sont acceptés : les adresses internes ou privées sont refusées.</div>
+  <div class="foot">{{ _("Only public http(s) feeds are accepted: internal or private addresses are refused.") }}</div>
 </section>
 {% endblock %}

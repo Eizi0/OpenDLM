@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,22 +14,27 @@
       OpenDLM
     </div>
     <nav class="nav">
-      <a href="/" class="{% block nav_home %}{% endblock %}">Tableau de bord</a>
-      <a href="/news" class="{% block nav_news %}{% endblock %}">Actus leaks</a>
-      <a href="/reports" class="{% block nav_reports %}{% endblock %}">Rapports</a>
-      <a href="/sources" class="{% block nav_sources %}{% endblock %}">Sources</a>
-      <a href="/notifications" class="{% block nav_notifications %}{% endblock %}">Notifications</a>
+      <a href="/" class="{% block nav_home %}{% endblock %}">{{ _("Dashboard") }}</a>
+      <a href="/news" class="{% block nav_news %}{% endblock %}">{{ _("Leak news") }}</a>
+      <a href="/reports" class="{% block nav_reports %}{% endblock %}">{{ _("Reports") }}</a>
+      <a href="/sources" class="{% block nav_sources %}{% endblock %}">{{ _("Sources") }}</a>
+      <a href="/notifications" class="{% block nav_notifications %}{% endblock %}">{{ _("Notifications") }}</a>
     </nav>
     <div style="flex:1"></div>
-    {% if demo %}<div class="pill warn">Mode démo : fuites fictives</div>{% endif %}
+    {% if demo %}<div class="pill warn">{{ _("Demo mode: fictional leaks") }}</div>{% endif %}
+    <div class="langs" aria-label="{{ _('Language') }}">
+      {% for code, name in languages.items() %}<a href="/lang/{{ code }}" class="{{ 'active' if code == lang else '' }}" hreflang="{{ code }}" lang="{{ code }}">{{ code | upper }}</a>{% endfor %}
+    </div>
     {% if request.state.user %}
     <form method="post" action="/logout" class="userbox">
       <span class="muted">{{ request.state.user.username }}</span>
-      <button class="btn small" type="submit">Déconnexion</button>
+      <button class="btn small" type="submit">{{ _("Sign out") }}</button>
     </form>
     {% endif %}
   </aside>
   <main class="main">
+    {% if flash.error %}<div class="alert" role="alert">{{ flash.error }}</div>{% endif %}
+    {% if flash.notice %}<div class="note" role="status">{{ flash.notice }}</div>{% endif %}
     {% block content %}{% endblock %}
   </main>
 </div>

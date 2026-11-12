@@ -9,6 +9,7 @@ from itsdangerous import BadSignature, URLSafeTimedSerializer
 from sqlalchemy.orm import Session
 
 from . import crypto
+from .i18n import t
 from .models import User
 
 SESSION_COOKIE = "opendlm_session"
@@ -40,8 +41,8 @@ def verify_password(password: str, stored: str) -> bool:
     return hmac.compare_digest(got, expected)
 
 
-# Hash factice : on vérifie quand même un mot de passe quand l'utilisateur n'existe pas,
-# pour ne pas révéler les noms valides par le temps de réponse.
+# Dummy hash: a password is still verified when the user does not exist,
+# so valid usernames are not revealed by response time.
 _DUMMY_HASH = hash_password("mot-de-passe-factice-pour-le-timing")
 
 
@@ -55,7 +56,7 @@ def authenticate(session: Session, username: str, password: str) -> User | None:
 
 def password_problem(password: str) -> str | None:
     if len(password) < MIN_PASSWORD_LENGTH:
-        return f"Le mot de passe doit contenir au moins {MIN_PASSWORD_LENGTH} caractères."
+        return t("The password must be at least %(n)d characters long.", n=MIN_PASSWORD_LENGTH)
     return None
 
 
@@ -67,7 +68,7 @@ def get_secret(session: Session | None = None) -> str:
 
 
 def _fingerprint(user: User) -> str:
-    # Changer de mot de passe invalide les sessions existantes.
+    # Changing the password invalidates existing sessions.
     return hashlib.sha256(user.password_hash.encode()).hexdigest()[:16]
 
 
@@ -93,7 +94,7 @@ def user_from_token(session: Session, token: str | None, secret: str) -> User | 
 
 
 class LoginThrottle:
-    """Bloque temporairement après trop d'échecs de connexion depuis la même adresse."""
+    """Temporarily blocks an address after too many failed logins."""
 
     def __init__(self, max_failures: int = 5, window: int = 300, clock: Callable[[], float] = time.monotonic) -> None:
         self.max_failures, self.window, self.clock = max_failures, window, clock

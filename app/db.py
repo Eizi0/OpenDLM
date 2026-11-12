@@ -10,7 +10,7 @@ class Base(DeclarativeBase):
 
 
 if settings.database_url.startswith("sqlite"):
-    # Tests : une seule connexion partagée, sinon chaque connexion verrait une base vide.
+    # Tests: a single shared connection, otherwise every connection would see an empty database.
     engine = create_engine(settings.database_url, connect_args={"check_same_thread": False}, poolclass=StaticPool)
 else:
     engine = create_engine(settings.database_url, pool_pre_ping=True)

@@ -1,3 +1,9 @@
+"""Daily and monthly reports.
+
+Archived data is language-neutral (codes and ISO dates); labels, dates and sentences are
+produced at display or send time in the current language.
+"""
+
 import logging
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -5,45 +11,71 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import String, cast, func, select
 from sqlalchemy.orm import Session
 
-from .config import settings
-from .runtime_config import cfg
+from .i18n import N_, fmt_date, month_name, t
+from .labels import SEVERITY_ORDER, reliability_label, severity_label
 from .models import Domain, Finding, NewsItem, NewsSource, Report, ScanRun, utcnow
-from .news import RELIABILITY_LABEL
-from .notifier import SEVERITY_LABEL, SEVERITY_ORDER, Notifier
+from .notifier import Notifier
+from .runtime_config import cfg
 
 log = logging.getLogger("opendlm.reports")
 
-KIND_LABEL = {"daily": "quotidien", "monthly": "mensuel"}
-MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
-ATTRIBUTION = (
-    "Données de fuites : Have I Been Pwned (haveibeenpwned.com), licence CC BY 4.0. "
-    "OpenDLM ne conserve aucun mot de passe ni contenu de fuite."
+KINDS = ("daily", "monthly")
+_KIND_LABEL = {"daily": N_("daily"), "monthly": N_("monthly")}
+ATTRIBUTION = N_(
+    "Leak data: Have I Been Pwned (haveibeenpwned.com), licensed CC BY 4.0. "
+    "OpenDLM does not store any password or leaked content."
 )
+
+
+def kind_label(kind: str) -> str:
+    return t(_KIND_LABEL[kind])
 
 
 def _tz() -> ZoneInfo:
     return ZoneInfo(cfg.timezone)
 
 
-def _fr_date(dt: datetime) -> str:
-    local = dt.astimezone(_tz())
-    return f"{local.day} {MONTHS[local.month - 1]} {local.year}"
+def _aware(dt: datetime) -> datetime:
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)  # SQLite returns naive datetimes
 
 
-def period_for(kind: str, now: datetime) -> tuple[datetime, datetime, str]:
-    """Quotidien : les dernières 24 h. Mensuel : le mois civil précédent (fuseau configuré)."""
+def period_for(kind: str, now: datetime) -> tuple[datetime, datetime, dict]:
+    """Daily: the last 24 hours. Monthly: the previous calendar month (configured timezone).
+
+    Returns start, end (UTC) and a neutral label descriptor.
+    """
     now = now.astimezone(timezone.utc)
     if kind == "daily":
-        return now - timedelta(hours=24), now, _fr_date(now)
+        local = now.astimezone(_tz())
+        return now - timedelta(hours=24), now, {"type": "day", "date": local.date().isoformat()}
     local = now.astimezone(_tz())
     first_this = local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     first_prev = (first_this - timedelta(days=1)).replace(day=1)
-    return first_prev.astimezone(timezone.utc), first_this.astimezone(timezone.utc), f"{MONTHS[first_prev.month - 1]} {first_prev.year}"
+    return (
+        first_prev.astimezone(timezone.utc),
+        first_this.astimezone(timezone.utc),
+        {"type": "month", "year": first_prev.year, "month": first_prev.month},
+    )
+
+
+def label_text(label: dict) -> str:
+    if isinstance(label, str):  # reports archived before the language-neutral format
+        return label
+    if label["type"] == "month":
+        return f"{month_name(label['month'])} {label['year']}"
+    return fmt_date(label["date"])
+
+
+def title_text(report: Report) -> str:
+    d = report.data
+    n = d["totals"]["new_findings"]
+    tail = t("%(n)d new leak(s)", n=n) if n else t("nothing to report") if d["empty"] else t("to review")
+    return t("[OpenDLM] %(kind)s report · %(label)s · %(tail)s", kind=kind_label(d["kind"]), label=label_text(d["label"]), tail=tail)
 
 
 def build_report(session: Session, kind: str, now: datetime | None = None) -> Report:
-    if kind not in KIND_LABEL:
-        raise ValueError(f"type de rapport inconnu : {kind}")
+    if kind not in KINDS:
+        raise ValueError(f"unknown report type: {kind}")
     now = now or utcnow()
     start, end, label = period_for(kind, now)
 
@@ -51,8 +83,7 @@ def build_report(session: Session, kind: str, now: datetime | None = None) -> Re
     total_new = 0
     for d in session.scalars(select(Domain).where(Domain.verified.is_(True)).order_by(Domain.name)):
         new = session.scalars(
-            select(Finding)
-            .where(Finding.domain_id == d.id, Finding.first_seen >= start, Finding.first_seen < end, Finding.status != "known")
+            select(Finding).where(Finding.domain_id == d.id, Finding.first_seen >= start, Finding.first_seen < end, Finding.status != "known")
         ).all()
         new = sorted(new, key=lambda f: (SEVERITY_ORDER.get(f.severity, 3), f.identifier))
         open_total = session.scalar(select(func.count(Finding.id)).where(Finding.domain_id == d.id, Finding.status == "new")) or 0
@@ -61,12 +92,8 @@ def build_report(session: Session, kind: str, now: datetime | None = None) -> Re
             "name": d.name,
             "open_total": open_total,
             "new": [
-                {
-                    "identifier": f.identifier, "severity": f.severity, "severity_label": SEVERITY_LABEL.get(f.severity, f.severity),
-                    "breach": f.breach, "source": f.source,
-                    "breach_date": f.breach_date.strftime("%d/%m/%Y") if f.breach_date else None,
-                    "data_classes": list(f.data_classes or []),
-                }
+                {"identifier": f.identifier, "severity": f.severity, "breach": f.breach, "source": f.source,
+                 "breach_date": f.breach_date.isoformat() if f.breach_date else None, "data_classes": list(f.data_classes or [])}
                 for f in new
             ],
         })
@@ -76,19 +103,19 @@ def build_report(session: Session, kind: str, now: datetime | None = None) -> Re
         select(NewsItem).where(when >= start, when < end, cast(NewsItem.matched, String) != "[]").order_by(when.desc()).limit(100)
     ).all()
     mentions = [
-        {"title": i.title, "url": i.url, "source": i.source.name, "matched": list(i.matched),
-         "reliability": RELIABILITY_LABEL.get(i.reliability or "", ""), "published": _fr_date(i.published_at or i.first_seen)}
+        {"title": i.title, "url": i.url, "source": i.source.name, "matched": list(i.matched), "reliability": i.reliability,
+         "published": _aware(i.published_at or i.first_seen).astimezone(_tz()).date().isoformat()}
         for i in items
     ]
     news_total = session.scalar(select(func.count(NewsItem.id)).where(when >= start, when < end)) or 0
 
     problems = []
     for r in session.scalars(select(ScanRun).where(ScanRun.ok.is_(False), ScanRun.started_at >= start, ScanRun.started_at < end).order_by(ScanRun.started_at.desc())):
-        line = f"{r.source} : {r.error}"
-        if line not in problems:
-            problems.append(line)
+        entry = {"source": r.source, "message": r.error or ""}
+        if entry not in problems:
+            problems.append(entry)
     for s in session.scalars(select(NewsSource).where(NewsSource.enabled.is_(True), NewsSource.last_ok.is_(False))):
-        problems.append(f"{s.name} : {s.last_error}")
+        problems.append({"source": s.name, "message": s.last_error or ""})
 
     data = {
         "kind": kind, "label": label,
@@ -97,13 +124,10 @@ def build_report(session: Session, kind: str, now: datetime | None = None) -> Re
                    "open": sum(d["open_total"] for d in domains)},
         "domains": domains, "mentions": mentions, "problems": problems,
         "empty": not total_new and not mentions and not problems,
-        "generated": _fr_date(now),
+        "generated": now.astimezone(_tz()).date().isoformat(),
     }
-    title = (
-        f"[OpenDLM] Rapport {KIND_LABEL[kind]} · {label} · "
-        + (f"{total_new} nouvelle(s) fuite(s)" if total_new else "rien à signaler" if data["empty"] else "à consulter")
-    )
-    report = Report(kind=kind, period_start=start, period_end=end, title=title[:200], data=data)
+    report = Report(kind=kind, period_start=start, period_end=end, title="", data=data)
+    report.title = title_text(report)[:200]  # default language snapshot; display recomputes it
     session.add(report)
     session.commit()
     return report
@@ -111,36 +135,37 @@ def build_report(session: Session, kind: str, now: datetime | None = None) -> Re
 
 def render_markdown(report: Report) -> str:
     d = report.data
-    t = d["totals"]
-    lines = [f"# Rapport {KIND_LABEL[d['kind']]} · {d['label']}", ""]
+    tot = d["totals"]
+    lines = [t("# %(kind)s report · %(label)s", kind=kind_label(d["kind"]).capitalize(), label=label_text(d["label"])), ""]
     lines.append(
-        f"**{t['new_findings']} nouvelle(s) fuite(s)** · {t['mentions']} mention(s) d'actus · "
-        f"{t['domains']} domaine(s) surveillé(s) · {t['open']} fuite(s) restant à traiter"
+        t("**%(new)d new leak(s)** · %(mentions)d news mention(s) · %(domains)d monitored domain(s) · %(open)d leak(s) left to handle",
+          new=tot["new_findings"], mentions=tot["mentions"], domains=tot["domains"], open=tot["open"])
     )
     if d["empty"]:
-        lines += ["", "Rien à signaler sur la période."]
+        lines += ["", t("Nothing to report for this period.")]
     for dom in d["domains"]:
         if not dom["new"]:
             continue
         lines += ["", f"## {dom['name']}"]
         for f in dom["new"]:
-            when = f" · fuite du {f['breach_date']}" if f["breach_date"] else ""
-            data = f" · données : {', '.join(f['data_classes'])}" if f["data_classes"] else ""
-            lines.append(f"- **{f['severity_label']}** · `{f['identifier']}` · {f['breach']} ({f['source']}){when}{data}")
+            when = t(" · leaked on %(date)s", date=fmt_date(f["breach_date"])) if f["breach_date"] else ""
+            data = t(" · data: %(classes)s", classes=", ".join(f["data_classes"])) if f["data_classes"] else ""
+            lines.append(f"- **{severity_label(f['severity'])}** · `{f['identifier']}` · {f['breach']} ({f['source']}){when}{data}")
     if d["mentions"]:
-        lines += ["", "## Actus qui vous concernent"]
+        lines += ["", "## " + t("News that concerns you")]
         for m in d["mentions"]:
-            rel = f" · {m['reliability']}" if m["reliability"] else ""
+            rel = reliability_label(m["reliability"])
+            rel = f" · {rel}" if rel else ""
             link = f" {m['url']}" if m["url"] else ""
-            lines.append(f"- « {', '.join(m['matched'])} » : {m['title']} ({m['source']}{rel}){link}")
+            lines.append(f"- [{', '.join(m['matched'])}] {m['title']} ({m['source']}{rel}){link}")
     if d["problems"]:
-        lines += ["", "## État des sources"] + [f"- {p}" for p in d["problems"]]
-    lines += ["", f"_{ATTRIBUTION}_"]
+        lines += ["", "## " + t("Source status")] + [f"- {p['source']}: {t(p['message'])}" for p in d["problems"]]
+    lines += ["", f"_{t(ATTRIBUTION)}_"]
     return "\n".join(lines)
 
 
 def send_report(session: Session, report: Report, notifier: Notifier) -> bool:
-    ok = notifier.send(report.title, render_markdown(report), markdown=True)
+    ok = notifier.send(title_text(report), render_markdown(report), markdown=True)
     if ok:
         report.sent_at = utcnow()
         session.commit()
@@ -148,10 +173,10 @@ def send_report(session: Session, report: Report, notifier: Notifier) -> bool:
 
 
 def run_scheduled(session: Session, kind: str, notifier: Notifier) -> Report | None:
-    """Génère et envoie le rapport planifié. Un rapport vide n'est envoyé que si configuré (signal de vie)."""
+    """Build and send the scheduled report. An empty report is sent only if configured (heartbeat)."""
     report = build_report(session, kind)
     if report.data["empty"] and not cfg.report_send_empty:
-        log.info("rapport %s vide : non envoyé", kind)
+        log.info("report %s is empty: not sent", kind)
         return report
     send_report(session, report, notifier)
     return report

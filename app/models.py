@@ -16,6 +16,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(64), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    language: Mapped[str | None] = mapped_column(String(8), nullable=True)  # None: use the instance default
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -56,7 +57,7 @@ class Domain(Base):
 
 
 class Finding(Base):
-    """Une adresse apparue dans une fuite. Aucun mot de passe ni contenu de fuite n'est stocké."""
+    """An address that appeared in a leak. No password or leaked content is stored."""
 
     __tablename__ = "findings"
     __table_args__ = (UniqueConstraint("domain_id", "identifier", "source", "breach"),)
@@ -69,7 +70,7 @@ class Finding(Base):
     breach_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     data_classes: Mapped[list] = mapped_column(JSON, default=list)
     severity: Mapped[str] = mapped_column(String(16), default="low")
-    # new = à traiter, known = base de référence, ack = acquittée, resolved = traitée
+    # new = to handle, known = baseline, ack = acknowledged, resolved = handled
     status: Mapped[str] = mapped_column(String(16), default="new")
     first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
@@ -77,7 +78,7 @@ class Finding(Base):
 
 
 class NewsSource(Base):
-    """Source d'actus : flux RSS/Atom ou API ransomware.live."""
+    """News source: RSS/Atom feed or the ransomware.live API."""
 
     __tablename__ = "news_sources"
 
@@ -98,7 +99,7 @@ class NewsSource(Base):
 
 
 class NewsItem(Base):
-    """Titre, extrait et lien d'une annonce. Le contenu complet des articles n'est jamais conservé."""
+    """Title, excerpt and link of an announcement. Full article content is never kept."""
 
     __tablename__ = "news_items"
     __table_args__ = (UniqueConstraint("source_id", "guid"),)
@@ -119,7 +120,7 @@ class NewsItem(Base):
 
 
 class WatchWord(Base):
-    """Nom surveillé dans les actus (entreprise, fournisseur, marque…)."""
+    """Name watched in the news (company, supplier, brand...)."""
 
     __tablename__ = "watch_words"
 
@@ -129,7 +130,7 @@ class WatchWord(Base):
 
 
 class Report(Base):
-    """Rapport archivé. Les données sont structurées : l'affichage, le HTML et le Markdown en sont tirés."""
+    """Archived report. Data is structured: the page, HTML and Markdown are all rendered from it."""
 
     __tablename__ = "reports"
 

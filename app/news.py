@@ -10,24 +10,19 @@ from . import feeds
 from .config import settings
 from .runtime_config import cfg
 from .connectors import ransomware_live
+from .i18n import t
+from .labels import reliability_label
 from .models import Domain, NewsItem, NewsSource, WatchWord, utcnow
 from .notifier import Notifier
 
 log = logging.getLogger("opendlm.news")
 
-RELIABILITY_LABEL = {
-    "confirmed": "Confirmée",
-    "credible": "Revendiquée (crédible)",
-    "claimed": "Revendication",
-    "unreliable": "Peu fiable",
-}
-
 DEFAULT_SOURCES = [
     # name, kind, url, enabled
     ("FrenchBreaches", "rss", "https://frenchbreaches.com/feed.xml", True),
     ("ransomware.live", "ransomware_live", None, True),
-    # Le flux CERT-FR parle de vulnérabilités, pas de fuites : désactivé par défaut.
-    ("CERT-FR (avis de sécurité)", "rss", "https://www.cert.ssi.gouv.fr/feed/", False),
+    # The CERT-FR feed covers vulnerabilities, not leaks: disabled by default.
+    ("CERT-FR (security advisories)", "rss", "https://www.cert.ssi.gouv.fr/feed/", False),
 ]
 
 
@@ -40,7 +35,7 @@ def seed_default_sources(session: Session) -> None:
 
 
 def watch_terms(session: Session) -> list[str]:
-    """Mots surveillés : ceux saisis + les noms de domaine suivis."""
+    """Watched words: the ones entered plus the followed domain names."""
     words = [t for (t,) in session.execute(select(WatchWord.term))]
     domains = [n for (n,) in session.execute(select(Domain.name))]
     return list(dict.fromkeys(words + domains))
@@ -56,18 +51,18 @@ class RefreshResult:
 
 
 def format_mention(items: list[NewsItem]) -> tuple[str, str]:
-    title = f"[OpenDLM] {len(items)} actu(s) mentionnant vos mots surveillés"
+    title = t("[OpenDLM] %(n)d news item(s) mention your watched words", n=len(items))
     lines = []
     for it in items:
-        rel = RELIABILITY_LABEL.get(it.reliability or "", "")
-        lines.append(f"- « {', '.join(it.matched)} » : {it.title} ({it.source.name}{' · ' + rel if rel else ''}) {it.url}".rstrip())
+        rel = reliability_label(it.reliability)
+        lines.append(f"- [{', '.join(it.matched)}] {it.title} ({it.source.name}{' · ' + rel if rel else ''}) {it.url}".rstrip())
     return title, "\n".join(lines)
 
 
 def refresh_source(session: Session, source: NewsSource, notifier: Notifier | None = None, client: httpx.Client | None = None) -> RefreshResult:
-    """Récupère une source, enregistre les nouveautés et prévient si un mot surveillé apparaît.
+    """Fetch a source, store what is new and warn when a watched word appears.
 
-    Premier passage réussi : base de référence silencieuse (aucune alerte sur l'historique).
+    First successful pass: silent baseline (no alert on the history).
     """
     result = RefreshResult()
     owns_client = client is None
@@ -77,14 +72,14 @@ def refresh_source(session: Session, source: NewsSource, notifier: Notifier | No
     except feeds.FeedError as e:
         result.error = str(e)
         _record(session, source, ok=False, error=str(e))
-        log.warning("source %s en erreur : %s", source.name, e)
+        log.warning("source %s failed: %s", source.name, e)
         return result
     finally:
         if owns_client:
             client.close()
 
     if result.skipped:
-        # Source non configurée : ce n'est pas une panne (la page Sources l'indique, le rapport ne la signale pas).
+        # Unconfigured source: not an outage (the Sources page says so, the report does not flag it).
         source.last_ok, source.last_error = None, None
         session.commit()
         return result
@@ -125,11 +120,11 @@ def refresh_source(session: Session, source: NewsSource, notifier: Notifier | No
 def _fetch_entries(source: NewsSource, client: httpx.Client, result: RefreshResult) -> list[feeds.NewsEntry]:
     if source.kind == "ransomware_live":
         if not cfg.ransomware_live_key:
-            result.skipped = "Clé API manquante (OPENDLM_RANSOMWARE_LIVE_KEY)"
+            result.skipped = "API key missing"
             return []
         return ransomware_live.fetch_recent(client, cfg.ransomware_live_key, settings.user_agent)
     if not source.url:
-        raise feeds.FeedError("URL du flux manquante")
+        raise feeds.FeedError("Feed URL missing")
     fetched = feeds.fetch(client, source.url, source.etag, source.last_modified, settings.user_agent, cfg.allow_private_feeds)
     if fetched.not_modified:
         result.not_modified = True

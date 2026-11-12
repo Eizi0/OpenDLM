@@ -30,7 +30,7 @@ def test_protected_pages_redirect_to_setup_when_no_user(client, path):
 def test_setup_creates_admin_once_and_closes(client):
     assert client.get("/setup").status_code == 200
     short = client.post("/setup", data={"username": "admin", "password": "court", "confirm": "court"})
-    assert short.status_code == 422 and "12 caractères" in short.text
+    assert short.status_code == 422 and "at least 12 characters" in short.text
     mismatch = client.post("/setup", data={"username": "admin", "password": STRONG, "confirm": STRONG + "x"})
     assert mismatch.status_code == 422
     ok = client.post("/setup", data={"username": "Admin", "password": STRONG, "confirm": STRONG})

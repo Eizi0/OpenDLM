@@ -8,10 +8,10 @@ API = "https://haveibeenpwned.com/api/v3"
 
 
 class HibpConnector:
-    """Have I Been Pwned, API officielle uniquement.
+    """Have I Been Pwned, official API only.
 
-    Nécessite une clé payante et un domaine vérifié sur le tableau de bord HIBP.
-    Les données de HIBP sont sous licence CC BY 4.0 : la source doit rester citée.
+    Needs a paid key and a domain verified on the HIBP dashboard.
+    HIBP data is licensed CC BY 4.0: the source must stay credited.
     """
 
     name = "HIBP"
@@ -25,20 +25,20 @@ class HibpConnector:
         try:
             r = self._client.get(f"{API}{path}", headers=self._headers)
         except httpx.HTTPError as e:
-            raise ConnectorError(f"HIBP injoignable : {e}") from e
+            raise ConnectorError(f"HIBP unreachable: {e}") from e
         if r.status_code == 429:
-            raise ConnectorError("HIBP : limite de débit atteinte", retry_after=int(r.headers.get("retry-after", "60")))
+            raise ConnectorError("HIBP: rate limit reached", retry_after=int(r.headers.get("retry-after", "60")))
         if r.status_code == 401:
-            raise ConnectorError("HIBP : clé API refusée")
+            raise ConnectorError("HIBP: API key rejected")
         if r.status_code == 403:
-            raise ConnectorError("HIBP : domaine non vérifié ou plan insuffisant")
+            raise ConnectorError("HIBP: domain not verified or plan insufficient")
         return r
 
     def _breach_catalog(self) -> dict[str, dict]:
         if self._catalog is None:
             r = self._get("/breaches")
             if r.status_code != 200:
-                raise ConnectorError(f"HIBP : catalogue indisponible ({r.status_code})")
+                raise ConnectorError(f"HIBP: breach catalog unavailable ({r.status_code})")
             self._catalog = {b["Name"]: b for b in r.json()}
         return self._catalog
 
@@ -47,7 +47,7 @@ class HibpConnector:
         if r.status_code == 404:
             return []
         if r.status_code != 200:
-            raise ConnectorError(f"HIBP : réponse inattendue ({r.status_code})")
+            raise ConnectorError(f"HIBP: unexpected response ({r.status_code})")
         catalog = self._breach_catalog()
         hits: list[Hit] = []
         for alias, breaches in r.json().items():

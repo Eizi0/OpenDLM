@@ -8,13 +8,15 @@ from .connectors.base import Connector, ConnectorError, Hit
 from .models import Domain, Finding, ScanRun
 from .config import settings
 from .runtime_config import cfg
-from .notifier import SEVERITY_ORDER, Notifier
+from .i18n import t
+from .labels import SEVERITY_ORDER
+from .notifier import Notifier
 
 log = logging.getLogger("opendlm.scanner")
 
 
 def severity(hit: Hit) -> str:
-    """Gravité déduite des types de données exposées (règle simple, à affiner)."""
+    """Severity derived from the kinds of data exposed (simple rule)."""
     classes = {c.lower() for c in hit.data_classes}
     if classes & {"session cookies", "stealer logs", "browser cookies"}:
         return "critical"
@@ -31,14 +33,13 @@ class ScanResult:
 
 
 def run_scan(session: Session, domain: Domain, connectors: list[Connector], notifier: Notifier | None = None) -> ScanResult:
-    """Interroge chaque source pour un domaine.
+    """Query every source for a domain.
 
-    Premier passage réussi d'une source sur un domaine : base de référence silencieuse
-    (statut « known », aucune alerte). Ensuite, seules les nouveautés sont enregistrées
-    en « new » et notifiées.
+    First successful pass of a source on a domain: silent baseline (status "known", no alert).
+    After that, only new findings are stored as "new" and notified.
     """
     if not domain.verified:
-        raise PermissionError(f"Propriété du domaine {domain.name} non vérifiée")
+        raise PermissionError(t("Ownership of %(domain)s has not been verified", domain=domain.name))
 
     result = ScanResult()
     for connector in connectors:
@@ -49,8 +50,8 @@ def run_scan(session: Session, domain: Domain, connectors: list[Connector], noti
             run.ok, run.error = False, str(e)
             session.add(run)
             session.commit()
-            result.errors.append(f"{connector.name} : {e}")
-            log.warning("source %s en erreur pour %s : %s", connector.name, domain.name, e)
+            result.errors.append(f"{connector.name}: {e}")
+            log.warning("source %s failed for %s: %s", connector.name, domain.name, e)
             continue
 
         had_success = session.scalar(
@@ -90,7 +91,7 @@ def run_scan(session: Session, domain: Domain, connectors: list[Connector], noti
         else:
             result.new.extend(created)
 
-    # Sous le seuil configuré, une fuite n'est pas alertée tout de suite : elle figure dans le rapport.
+    # Below the configured threshold a finding is not alerted immediately: it appears in the report.
     threshold = SEVERITY_ORDER.get(cfg.alert_min_severity, SEVERITY_ORDER["low"])
     urgent = [f for f in result.new if SEVERITY_ORDER.get(f.severity, 3) <= threshold]
     if urgent and notifier:

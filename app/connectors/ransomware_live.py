@@ -18,26 +18,26 @@ def _date(raw: str | None) -> datetime | None:
 
 
 def fetch_recent(client: httpx.Client, api_key: str, user_agent: str) -> list[NewsEntry]:
-    """Revendications récentes de groupes de rançongiciel (API PRO, clé gratuite).
+    """Recent ransomware group claims (PRO API, free key).
 
-    Ce sont des revendications, pas des faits établis : la fiabilité est « claimed ».
+    These are claims, not established facts: reliability is "claimed".
     """
     try:
         r = client.get(f"{API}/victims/recent", headers={"X-API-KEY": api_key, "user-agent": user_agent}, timeout=30)
     except httpx.HTTPError as e:
-        raise FeedError(f"ransomware.live injoignable : {e}") from e
+        raise FeedError(f"ransomware.live unreachable: {e}") from e
     if r.status_code in (401, 403):
-        raise FeedError("ransomware.live : clé API refusée")
+        raise FeedError("ransomware.live: API key rejected")
     if r.status_code == 429:
-        raise FeedError("ransomware.live : limite de débit atteinte")
+        raise FeedError("ransomware.live: rate limit reached")
     if r.status_code != 200:
-        raise FeedError(f"ransomware.live : réponse HTTP {r.status_code}")
+        raise FeedError(f"ransomware.live: HTTP response {r.status_code}")
     try:
         data = r.json()
     except ValueError as e:
-        raise FeedError("ransomware.live : réponse illisible") from e
+        raise FeedError("ransomware.live: unreadable response") from e
     if not isinstance(data, list):
-        raise FeedError("ransomware.live : format inattendu")
+        raise FeedError("ransomware.live: unexpected format")
 
     entries = []
     for v in data[:200]:
@@ -48,7 +48,7 @@ def fetch_recent(client: httpx.Client, api_key: str, user_agent: str) -> list[Ne
         when = _date(v.get("discovered") or v.get("attackdate"))
         if not name:
             continue
-        detail = " · ".join(p for p in (f"Revendiqué par {group}" if group else "", v.get("country") or "", v.get("activity") or "") if p)
+        detail = " · ".join(p for p in (f"Claimed by {group}" if group else "", v.get("country") or "", v.get("activity") or "") if p)
         guid = f"{group}|{name}|{when.date() if when else ''}"
         page = v.get("url") if isinstance(v.get("url"), str) and v["url"].startswith("https://www.ransomware.live/") else "https://www.ransomware.live/"
         entries.append(NewsEntry(guid=guid[:512], title=name, url=page, excerpt=clean_text(detail), published_at=when, reliability="claimed"))
