@@ -9,6 +9,12 @@ uptime monitor, but for leaks.
 It also aggregates leak announcements (FrenchBreaches, ransomware.live, any RSS/Atom feed) and warns you when one of
 your watched names appears in them.
 
+## Demo
+
+<a href="docs/demo.mp4"><img src="docs/demo-poster.png" alt="OpenDLM demo video: sign-in, silent baseline, a new leak detected, news, reports, sources guide, settings" width="720"></a>
+
+*Click the image to watch the 70-second tour (recorded in demo mode with fictional leaks).*
+
 ## Principles
 
 - **No leaked content is ever stored.** Only the affected address, the breach name, its date, the source and the kinds of
