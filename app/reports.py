@@ -5,7 +5,7 @@ produced at display or send time in the current language.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import String, cast, func, select
@@ -63,7 +63,8 @@ def label_text(label: dict) -> str:
         return label
     if label["type"] == "month":
         return f"{month_name(label['month'])} {label['year']}"
-    return fmt_date(label["date"])
+    day = date.fromisoformat(label["date"])  # same long form as the month label: "12 November 2026"
+    return f"{day.day} {month_name(day.month)} {day.year}"
 
 
 def title_text(report: Report) -> str:

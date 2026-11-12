@@ -112,7 +112,7 @@ def test_markdown_content_and_attribution(session):
     session.add(finding(d, "c.martin@exemple.fr", severity="critical", source="Hudson Rock"))
     session.commit()
     md = reports.render_markdown(reports.build_report(session, "daily", NOW))
-    assert md.startswith("# Daily report · 2026-11-12")
+    assert md.startswith("# Daily report · 12 November 2026")
     assert "`c.martin@exemple.fr`" in md and "**Critical**" in md and "Have I Been Pwned" in md and "does not store any password" in md
 
 
@@ -201,3 +201,16 @@ def test_report_content_is_escaped(logged_client):
     rid = logged_client.post("/reports/generate", data={"kind": "daily"}).headers["location"].rsplit("/", 1)[1]
     page = logged_client.get(f"/reports/{rid}")
     assert "<img src=x" not in page.text and "&lt;img src=x" in page.text
+
+
+@pytest.mark.parametrize("lang,daily,monthly", [("en", "12 November 2026", "October 2026"), ("fr", "12 novembre 2026", "octobre 2026")])
+def test_daily_and_monthly_labels_share_one_format(lang, daily, monthly):
+    from app import i18n
+
+    token = i18n.set_language(lang)
+    try:
+        _, _, d = reports.period_for("daily", NOW)
+        _, _, m = reports.period_for("monthly", NOW)
+        assert reports.label_text(d) == daily and reports.label_text(m) == monthly
+    finally:
+        i18n.reset_language(token)
