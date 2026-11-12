@@ -3,11 +3,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
 
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
 from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select, text
+from sqlalchemy import String, cast, func, select, text
 from sqlalchemy.orm import Session
 
 from . import migrate, news, scheduler, verification
@@ -15,7 +18,9 @@ from .config import settings
 from .connectors import build_connectors
 from .db import SessionLocal
 from .deps import LoginRequired, get_session, has_users, require_user
-from .models import Domain, Finding, ScanRun, User
+from .models import Domain, Finding, NewsItem, NewsSource, ScanRun, User, WatchWord, utcnow
+from .ssrf import UnsafeURL, check_url
+from .news import RELIABILITY_LABEL
 from .notifier import SEVERITY_LABEL, Notifier
 from .scanner import run_scan
 from .security import (
@@ -47,7 +52,19 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="OpenDLM", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
-templates.env.globals.update(severity_label=SEVERITY_LABEL, demo=settings.demo)
+
+
+def fmt_local(value: datetime | None, pattern: str = "%d/%m/%Y %H:%M") -> str:
+    """Date dans le fuseau configuré (les dates sont stockées en UTC)."""
+    if value is None:
+        return "—"
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(ZoneInfo(settings.timezone)).strftime(pattern)
+
+
+templates.env.filters["local"] = fmt_local
+templates.env.globals.update(severity_label=SEVERITY_LABEL, reliability_label=RELIABILITY_LABEL, demo=settings.demo)
 throttle = LoginThrottle()
 
 
@@ -196,7 +213,9 @@ def dashboard(request: Request, session: Session = Depends(get_session)):
         "total": sum(r["total"] for r in rows),
     }
     connectors = [c.name for c in build_connectors()]
-    return templates.TemplateResponse(request, "dashboard.html", {"rows": rows, "totals": totals, "connectors": connectors})
+    recent = session.scalars(select(NewsItem).where(NewsItem.first_seen > utcnow() - timedelta(days=7)).order_by(NewsItem.first_seen.desc()).limit(200)).all()
+    mentions = [i for i in recent if i.matched]
+    return templates.TemplateResponse(request, "dashboard.html", {"rows": rows, "totals": totals, "connectors": connectors, "mentions": mentions})
 
 
 @router.post("/domains")
@@ -256,6 +275,146 @@ def ack_finding(finding_id: int, session: Session = Depends(get_session)):
     finding.status = "ack"
     session.commit()
     return RedirectResponse(f"/domains/{finding.domain_id}", status_code=303)
+
+
+PAGE_SIZE = 30
+
+
+@router.get("/news")
+def news_page(
+    request: Request,
+    source: int | None = None,
+    reliability: str | None = None,
+    mentions: int = 0,
+    page: int = 1,
+    session: Session = Depends(get_session),
+):
+    page = max(page, 1)
+    query = select(NewsItem).join(NewsSource)
+    if source:
+        query = query.where(NewsItem.source_id == source)
+    if reliability in RELIABILITY_LABEL:
+        query = query.where(NewsItem.reliability == reliability)
+    if mentions:
+        # Cast en texte : le type JSON de PostgreSQL n'a pas d'opérateur d'égalité.
+        query = query.where(cast(NewsItem.matched, String) != "[]")
+    total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
+    items = session.scalars(
+        query.order_by(NewsItem.published_at.desc().nulls_last(), NewsItem.id.desc()).limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE)
+    ).all()
+    recent_mentions = session.scalars(
+        select(NewsItem).where(NewsItem.first_seen > utcnow() - timedelta(days=7)).order_by(NewsItem.first_seen.desc()).limit(50)
+    ).all()
+    recent_mentions = [i for i in recent_mentions if i.matched]
+    return templates.TemplateResponse(
+        request,
+        "news.html",
+        {
+            "items": items, "total": total, "page": page, "pages": max(1, -(-total // PAGE_SIZE)),
+            "sources": session.scalars(select(NewsSource).order_by(NewsSource.name)).all(),
+            "words": session.scalars(select(WatchWord).order_by(WatchWord.term)).all(),
+            "filters": {"source": source, "reliability": reliability, "mentions": mentions},
+            "recent_mentions": recent_mentions[:5],
+        },
+    )
+
+
+@router.post("/watch-words")
+def add_watch_word(term: str = Form(...), session: Session = Depends(get_session)):
+    term = " ".join(term.split())
+    if not (3 <= len(term) <= 120):
+        raise HTTPException(422, "Le mot surveillé doit contenir entre 3 et 120 caractères")
+    if not session.scalar(select(WatchWord).where(func.lower(WatchWord.term) == term.lower())):
+        session.add(WatchWord(term=term))
+        session.commit()
+    return RedirectResponse("/news", status_code=303)
+
+
+@router.post("/watch-words/{word_id}/delete")
+def delete_watch_word(word_id: int, session: Session = Depends(get_session)):
+    word = session.get(WatchWord, word_id)
+    if word:
+        session.delete(word)
+        session.commit()
+    return RedirectResponse("/news", status_code=303)
+
+
+KIND_LABEL = {"rss": "Flux RSS/Atom", "ransomware_live": "API ransomware.live PRO"}
+
+
+def _source_status(src: NewsSource) -> tuple[str, str]:
+    if not src.enabled:
+        return "Désactivée", ""
+    if src.kind == "ransomware_live" and not settings.ransomware_live_key:
+        return "Clé API manquante", "warn"
+    if src.last_ok is None:
+        return "En attente du premier passage", ""
+    return ("Active", "ok") if src.last_ok else ("En erreur", "warn")
+
+
+@router.get("/sources")
+def sources_page(request: Request, session: Session = Depends(get_session)):
+    rows = []
+    for src in session.scalars(select(NewsSource).order_by(NewsSource.builtin.desc(), NewsSource.name)):
+        label, tone = _source_status(src)
+        rows.append({"src": src, "status": label, "tone": tone, "kind": KIND_LABEL.get(src.kind, src.kind),
+                     "count": session.scalar(select(func.count(NewsItem.id)).where(NewsItem.source_id == src.id)) or 0})
+    leak_sources = [
+        {"name": "Have I Been Pwned", "ok": bool(settings.hibp_api_key), "detail": "Clé API configurée" if settings.hibp_api_key else "Clé API manquante (OPENDLM_HIBP_API_KEY)"},
+        {"name": "Connecteur de démonstration", "ok": settings.demo, "detail": "Actif : données fictives" if settings.demo else "Désactivé"},
+    ]
+    return templates.TemplateResponse(
+        request, "sources.html",
+        {"rows": rows, "leak_sources": leak_sources, "notify_count": len(settings.notify_url_list), "error": request.query_params.get("error")},
+    )
+
+
+@router.post("/sources")
+def add_source(name: str = Form(...), url: str = Form(...), session: Session = Depends(get_session)):
+    name, url = " ".join(name.split()), url.strip()
+    if not (2 <= len(name) <= 80):
+        return RedirectResponse("/sources?error=Nom invalide (2 à 80 caractères)", status_code=303)
+    try:
+        check_url(url, settings.allow_private_feeds)
+    except UnsafeURL as e:
+        return RedirectResponse(f"/sources?error={e}", status_code=303)
+    if session.scalar(select(NewsSource).where(NewsSource.name == name)):
+        return RedirectResponse("/sources?error=Ce nom est déjà utilisé", status_code=303)
+    session.add(NewsSource(name=name, kind="rss", url=url[:1000], enabled=True))
+    session.commit()
+    return RedirectResponse("/sources", status_code=303)
+
+
+def _source_or_404(session: Session, source_id: int) -> NewsSource:
+    src = session.get(NewsSource, source_id)
+    if src is None:
+        raise HTTPException(404, "Source inconnue")
+    return src
+
+
+@router.post("/sources/{source_id}/toggle")
+def toggle_source(source_id: int, session: Session = Depends(get_session)):
+    src = _source_or_404(session, source_id)
+    src.enabled = not src.enabled
+    session.commit()
+    return RedirectResponse("/sources", status_code=303)
+
+
+@router.post("/sources/{source_id}/refresh")
+def refresh_source_now(source_id: int, session: Session = Depends(get_session)):
+    src = _source_or_404(session, source_id)
+    news.refresh_source(session, src, Notifier())
+    return RedirectResponse("/sources", status_code=303)
+
+
+@router.post("/sources/{source_id}/delete")
+def delete_source(source_id: int, session: Session = Depends(get_session)):
+    src = _source_or_404(session, source_id)
+    if src.builtin:
+        raise HTTPException(403, "Une source intégrée ne peut pas être supprimée, seulement désactivée")
+    session.delete(src)
+    session.commit()
+    return RedirectResponse("/sources", status_code=303)
 
 
 app.include_router(router)

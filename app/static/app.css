@@ -52,3 +52,10 @@ input[type=password]{min-height:44px;padding:0 14px;border-radius:10px;border:1p
 .stack .btn{margin-top:14px}
 .alert{padding:12px 14px;border-radius:10px;background:#3A1B20;border:1px solid #5A2B31;color:#FFB3B3;margin-bottom:12px}
 .userbox{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 10px 0}
+select{min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit}
+.pill.accent{background:#1B1B33;color:#B9B8FF}
+.feature{border:1px solid #3A3A66;border-radius:16px;padding:18px 22px;background:linear-gradient(135deg,#1B1B33,var(--panel) 65%)}
+.check{display:inline-flex;align-items:center;gap:8px;color:var(--muted);min-height:44px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 12px;border-radius:8px;background:#1E2733;font-size:13px}
+.chip button{background:none;border:0;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;min-width:28px;min-height:28px}
+.chip button:hover{color:var(--text)}

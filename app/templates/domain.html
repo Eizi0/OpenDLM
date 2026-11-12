@@ -39,7 +39,7 @@
       <tr class="{{ 'new' if f.status == 'new' else '' }}">
         <td class="mono">{{ f.identifier }}</td>
         <td><b>{{ f.breach }}</b><br><span class="muted">{{ f.source }}</span></td>
-        <td>{{ f.breach_date.strftime("%d/%m/%Y") if f.breach_date else "—" }}<br><span class="muted">vu le {{ f.first_seen.strftime("%d/%m/%Y") }}</span></td>
+        <td>{{ f.breach_date.strftime("%d/%m/%Y") if f.breach_date else "—" }}<br><span class="muted">vu le {{ f.first_seen | local("%d/%m/%Y") }}</span></td>
         <td class="muted">{{ f.data_classes | join(", ") }}</td>
         <td><span class="pill {{ f.severity }}">{{ severity_label.get(f.severity, f.severity) }}</span></td>
         <td>{% if f.status == "new" %}<span class="pill bad">Nouvelle</span>{% elif f.status == "ack" %}<span class="pill ok">Acquittée</span>{% else %}<span class="pill">Connue</span>{% endif %}</td>
@@ -58,7 +58,7 @@
   <header><h2>Derniers scans</h2></header>
   {% for r in runs %}
   <div class="row">
-    <span style="flex:0 0 150px">{{ r.started_at.strftime("%d/%m/%Y %H:%M") }}</span>
+    <span style="flex:0 0 150px">{{ r.started_at | local }}</span>
     <span style="flex:0 0 110px"><b>{{ r.source }}</b></span>
     {% if not r.ok %}<span class="pill warn">Erreur</span><span class="muted">{{ r.error }}</span>
     {% elif r.baseline %}<span class="pill">Base de référence</span>

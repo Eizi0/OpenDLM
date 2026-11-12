@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Sources · OpenDLM{% endblock %}
+{% block nav_sources %}active{% endblock %}
+{% block content %}
+<header>
+  <h1>Sources</h1>
+  <div class="sub">Chaque source est indépendante. Les clés restent dans les variables d’environnement de votre serveur.</div>
+</header>
+
+<div class="note">Vous êtes responsable du respect des conditions d’utilisation de chaque source. OpenDLM n’interroge que des API et flux publics, avec un User-Agent identifié, et ne conserve jamais le contenu d’une fuite.</div>
+
+{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+
+<section class="card">
+  <header><h2>Vérification de vos domaines</h2></header>
+  {% for s in leak_sources %}
+  <div class="row">
+    <div style="flex:1 1 200px"><b>{{ s.name }}</b></div>
+    <span class="pill {{ 'ok' if s.ok else '' }}">{{ "Actif" if s.ok else "Inactif" }}</span>
+    <span class="muted">{{ s.detail }}</span>
+  </div>
+  {% endfor %}
+  <div class="row"><div style="flex:1 1 200px"><b>Canaux de notification</b></div>
+    <span class="pill {{ 'ok' if notify_count else 'warn' }}">{{ notify_count }} configuré(s)</span>
+    <span class="muted">{% if notify_count %}Variable OPENDLM_NOTIFY_URLS{% else %}Aucun canal : les alertes restent dans les journaux (OPENDLM_NOTIFY_URLS){% endif %}</span></div>
+</section>
+
+<section class="card">
+  <header><h2>Actus</h2></header>
+  {% for r in rows %}
+  <div class="row">
+    <div style="flex:1 1 240px;min-width:0">
+      <div><b>{{ r.src.name }}</b> <span class="muted">· {{ r.kind }}</span></div>
+      {% if r.src.url %}<div class="mono muted" style="font-size:12px">{{ r.src.url }}</div>{% endif %}
+      <div class="muted" style="font-size:12px">{{ r.count }} actu(s) · dernier passage {{ r.src.last_fetch_at | local }}</div>
+      {% if r.src.last_error %}<div style="color:var(--warn);font-size:13px">{{ r.src.last_error }}</div>{% endif %}
+    </div>
+    <span class="pill {{ r.tone }}">{{ r.status }}</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <form method="post" action="/sources/{{ r.src.id }}/refresh"><button class="btn small" type="submit" {% if not r.src.enabled %}disabled{% endif %}>Actualiser</button></form>
+      <form method="post" action="/sources/{{ r.src.id }}/toggle"><button class="btn small" type="submit">{{ "Désactiver" if r.src.enabled else "Activer" }}</button></form>
+      {% if not r.src.builtin %}<form method="post" action="/sources/{{ r.src.id }}/delete"><button class="btn small" type="submit">Supprimer</button></form>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  <form method="post" action="/sources" class="inline pad" style="border-top:1px solid var(--line2)">
+    <input type="text" name="name" placeholder="Nom de la source" aria-label="Nom de la source" maxlength="80" required style="min-width:0;flex:1 1 180px">
+    <input type="text" name="url" placeholder="https://exemple.fr/feed.xml" aria-label="URL du flux RSS ou Atom" maxlength="1000" required style="min-width:0;flex:2 1 280px">
+    <button class="btn primary" type="submit">Ajouter un flux</button>
+  </form>
+  <div class="foot">Seuls les flux publics http(s) sont acceptés : les adresses internes ou privées sont refusées.</div>
+</section>
+{% endblock %}
