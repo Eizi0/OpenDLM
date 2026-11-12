@@ -81,6 +81,29 @@ complying with the terms of use of the sources they enable.
 - **Two-factor authentication** (TOTP): each user can enable it from their profile, with a QR code, single-use recovery codes, protection against code replay, and an administrator reset for someone locked out.
 - **Roles**: administrators change everything; viewers are read-only and cannot open Sources, Notifications, Settings or Users.
 
+## API, exports and monitoring
+
+Administrators create **read-only API tokens** on the *API access* page (a token is shown once; only its hash is stored).
+
+```bash
+curl -H "Authorization: Bearer odlm_..." https://your-host/api/v1/status
+curl -H "Authorization: Bearer odlm_..." "https://your-host/api/v1/findings?status=new&severity=critical&format=csv"
+curl -H "Authorization: Bearer odlm_..." "https://your-host/api/v1/news?mentions=1&format=json"
+```
+
+- `GET /api/v1/findings` (filters: `domain`, `status`, `severity`, `since`, `limit`) and `GET /api/v1/news` (`source`, `mentions`, `since`, `limit`), as JSON or CSV. CSV cells that could be read as spreadsheet formulas are neutralised.
+- `GET /metrics` exposes Prometheus metrics (domains, findings by status and severity, last scan time, scanner stalled flag, failed queries, news source health).
+- Signed-in users can download the same exports from the Domain and News pages.
+
+Prometheus scrape example:
+
+```yaml
+scrape_configs:
+  - job_name: opendlm
+    authorization: { credentials: odlm_... }
+    static_configs: [{ targets: ["your-host:8080"] }]
+```
+
 ## Development
 
 ```bash

@@ -14,7 +14,7 @@ from .db import SessionLocal
 from .deps import LoginRequired, has_users
 from .i18n import LANGUAGES, reset_language, set_language, t
 from .security import SESSION_COOKIE, get_secret, user_from_token
-from .web import auth, dashboard, news_pages, notifications, reports_pages, settings_pages, sources, users
+from .web import api, auth, dashboard, news_pages, notifications, reports_pages, settings_pages, sources, tokens, users
 from .web.common import BASE
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -91,4 +91,6 @@ def healthz():
 for module in (auth, dashboard, news_pages, sources, notifications, reports_pages, settings_pages):
     app.include_router(module.router)
 app.include_router(users.admin_router)
+app.include_router(tokens.router)
+app.include_router(api.router)
 app.include_router(users.profile_router)

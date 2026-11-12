@@ -30,7 +30,10 @@
 {% endif %}
 
 <section class="card">
-  <header><h2>{{ _("Affected addresses") }}</h2><span class="muted">{{ _("%(n)d in total", n=findings | length) }}</span></header>
+  <header><h2>{{ _("Affected addresses") }}</h2>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="muted">{{ _("%(n)d in total", n=findings | length) }}</span>
+      <a class="btn small" href="/api/v1/findings?domain={{ domain.name }}&format=csv">CSV</a>
+      <a class="btn small" href="/api/v1/findings?domain={{ domain.name }}&format=json">JSON</a></div></header>
   <div class="scroll">
   <table>
     <thead><tr><th>{{ _("Address") }}</th><th>{{ _("Breach and source") }}</th><th>{{ _("Date") }}</th><th>{{ _("Data exposed") }}</th><th>{{ _("Severity") }}</th><th>{{ _("Status") }}</th><th></th></tr></thead>

@@ -7,7 +7,11 @@
     <h1>{{ _("Leak news") }}</h1>
     <div class="sub">{{ _("Leak announcements gathered from your sources. Only the title, an excerpt and the link are kept.") }}</div>
   </div>
-  <a class="btn" href="/sources">{{ _("Manage sources") }}</a>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a class="btn" href="/api/v1/news?format=csv">{{ _("Export CSV") }}</a>
+    <a class="btn" href="/api/v1/news?format=json">{{ _("Export JSON") }}</a>
+    {% if request.state.user.role == "admin" %}<a class="btn" href="/sources">{{ _("Manage sources") }}</a>{% endif %}
+  </div>
 </header>
 
 {% if recent_mentions %}

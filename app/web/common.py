@@ -78,6 +78,8 @@ FLASH = {
     "twofa_reset": N_("Two-factor authentication reset for this user."),
     "twofa_bad_code": N_("Invalid code. Try again."),
     "token_created": N_("API token created. Copy it now: it is shown only once."),
+    "token_name": N_("Invalid token name (2 to 80 characters)."),
+    "token_revoked": N_("API token revoked."),
 }
 
 

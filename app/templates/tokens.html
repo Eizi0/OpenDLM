@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ _("API access") }} · OpenDLM{% endblock %}
+{% block nav_tokens %}active{% endblock %}
+{% block content %}
+<header>
+  <h1>{{ _("API access") }}</h1>
+  <div class="sub">{{ _("Read-only tokens for scripts and Prometheus. A token is shown once and only its hash is stored.") }}</div>
+</header>
+
+{% if new_token %}
+<section class="feature">
+  <div style="font-weight:600;margin-bottom:8px">{{ _("New token: copy it now, it will not be shown again.") }}</div>
+  <div class="mono" style="padding:12px 16px;border:1px solid #3A3A66;border-radius:12px;background:var(--bg)">{{ new_token }}</div>
+</section>
+{% endif %}
+
+<section class="card">
+  <header><h2>{{ _("Tokens") }}</h2></header>
+  {% for tk in tokens %}
+  <div class="row">
+    <div style="flex:1 1 220px"><b>{{ tk.name }}</b><div class="muted mono" style="font-size:12px">{{ tk.prefix }}…</div></div>
+    <div class="muted" style="font-size:13px">{{ _("created %(date)s by %(user)s", date=tk.created_at | local("date"), user=tk.created_by) }} · {{ _("last used") }} {{ tk.last_used_at | local if tk.last_used_at else _("never") }}</div>
+    <form method="post" action="/tokens/{{ tk.id }}/delete"><button class="btn small" type="submit">{{ _("Revoke") }}</button></form>
+  </div>
+  {% else %}
+  <div class="pad muted">{{ _("No token yet.") }}</div>
+  {% endfor %}
+  <form method="post" action="/tokens" class="inline pad" style="border-top:1px solid var(--line2)">
+    <input type="text" name="name" placeholder="{{ _('Token name (e.g. Prometheus)') }}" aria-label="{{ _('Token name') }}" maxlength="80" required style="min-width:0;flex:1 1 240px">
+    <button class="btn primary" type="submit">{{ _("Create a token") }}</button>
+  </form>
+</section>
+
+<section class="card">
+  <header><h2>{{ _("Endpoints") }}</h2></header>
+  <div class="pad" style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+    <div><span class="mono">GET /api/v1/status</span> <span class="muted">· {{ _("version, domains, open findings, last scan") }}</span></div>
+    <div><span class="mono">GET /api/v1/findings?domain=&amp;status=&amp;severity=&amp;since=&amp;format=json|csv</span></div>
+    <div><span class="mono">GET /api/v1/news?mentions=1&amp;source=&amp;since=&amp;format=json|csv</span></div>
+    <div><span class="mono">GET /metrics</span> <span class="muted">· {{ _("Prometheus text format") }}</span></div>
+    <div class="mono" style="padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg)">curl -H "Authorization: Bearer odlm_…" https://your-host/api/v1/status</div>
+    <div class="muted">{{ _("CSV cells that start with = + - or @ are prefixed with an apostrophe so a spreadsheet never runs them as formulas.") }}</div>
+  </div>
+</section>
+{% endblock %}
