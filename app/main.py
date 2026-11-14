@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -12,10 +14,10 @@ from . import audit, migrate, news, scheduler
 from .config import settings
 from .db import SessionLocal
 from .deps import LoginRequired, TwoFactorSetupRequired, has_users
-from .i18n import LANGUAGES, reset_language, set_language, t
+from .i18n import LANGUAGES, N_, reset_language, set_language, t
 from .security import SESSION_COOKIE, get_secret, request_ip, user_from_token
 from .web import api, audit_page, auth, dashboard, news_pages, notifications, reports_pages, settings_pages, sources, tokens, users
-from .web.common import BASE
+from .web.common import BASE, render
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -98,6 +100,47 @@ async def login_required_handler(request: Request, _: LoginRequired):
 @app.exception_handler(TwoFactorSetupRequired)
 async def twofa_required_handler(request: Request, _: TwoFactorSetupRequired):
     return RedirectResponse("/profile?e=twofa_required", status_code=303)
+
+
+MACHINE_PATHS = ("/api/", "/metrics", "/healthz")
+HEADINGS = {
+    400: N_("Bad request"), 401: N_("Sign-in required"), 403: N_("Access refused"), 404: N_("Page not found"),
+    405: N_("Action not allowed"), 409: N_("Not possible right now"), 422: N_("Invalid input"), 429: N_("Too many requests"),
+}
+
+
+def _wants_page(request: Request) -> bool:
+    return not request.url.path.startswith(MACHINE_PATHS) and "text/html" in request.headers.get("accept", "text/html")
+
+
+def _error_page(request: Request, status: int, detail: str | None):
+    heading = t(HEADINGS.get(status, N_("Something went wrong")))
+    return render(request, "error.html", {"status": status, "heading": heading, "detail": detail or ""}, status_code=status)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error(request: Request, exc: StarletteHTTPException):
+    if not _wants_page(request):
+        return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
+    detail = exc.detail if isinstance(exc.detail, str) and exc.detail not in ("Not Found", "Method Not Allowed") else None
+    if exc.status_code == 404 and detail is None:
+        detail = t("This page does not exist, or the item was deleted.")
+    return _error_page(request, exc.status_code, detail)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    if not _wants_page(request):
+        return JSONResponse({"detail": exc.errors()}, status_code=422)
+    return _error_page(request, 422, t("A required field is missing or has an invalid value."))
+
+
+@app.exception_handler(Exception)
+async def server_error(request: Request, exc: Exception):
+    logging.getLogger("opendlm").exception("unhandled error on %s %s", request.method, request.url.path)
+    if not _wants_page(request):
+        return JSONResponse({"detail": "internal error"}, status_code=500)
+    return _error_page(request, 500, t("An unexpected error occurred. It has been written to the logs."))
 
 
 @app.get("/healthz")

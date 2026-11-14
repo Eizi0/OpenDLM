@@ -113,9 +113,10 @@ def scan_domain(domain_id: int, session: Session = Depends(get_session)):
             if address_connectors:
                 scan_addresses(bg, target, address_connectors, notifier, limit=MANUAL_ADDRESS_BATCH)  # the rest follows hourly
 
+    session.close()  # the scan opens its own session; nothing from this request may stay open alongside it
     if not scan_jobs.start(domain_id, work):
-        return redirect(f"/domains/{domain.id}", notice="scan_running")
-    return redirect(f"/domains/{domain.id}", notice="scan_started")
+        return redirect(f"/domains/{domain_id}", notice="scan_running")
+    return redirect(f"/domains/{domain_id}", notice="scan_started")
 
 
 @router.post("/findings/{finding_id}/status")

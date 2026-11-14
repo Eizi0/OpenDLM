@@ -1,0 +1,10 @@
+{% extends "auth_base.html" %}
+{% block title %}{{ heading }} · OpenDLM{% endblock %}
+{% block content %}
+<div class="mono muted" style="font-size:13px">{{ _("Error %(code)d", code=status) }}</div>
+<h2 style="margin:6px 0 10px">{{ heading }}</h2>
+<p class="muted" style="margin:0 0 20px">{{ detail }}</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+  <a class="btn primary" href="/">{{ _("Back to the dashboard") }}</a>
+</div>
+{% endblock %}

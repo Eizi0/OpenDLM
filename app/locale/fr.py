@@ -1,6 +1,20 @@
 """French catalog: English message id -> French text."""
 
 MESSAGES: dict[str, str] = {
+    'Bad request': 'Requête invalide',
+    'Sign-in required': 'Connexion requise',
+    'Access refused': 'Accès refusé',
+    'Page not found': 'Page introuvable',
+    'Action not allowed': 'Action non autorisée',
+    'Not possible right now': 'Impossible pour le moment',
+    'Invalid input': 'Saisie invalide',
+    'Too many requests': 'Trop de requêtes',
+    'Something went wrong': 'Une erreur est survenue',
+    'This page does not exist, or the item was deleted.': "Cette page n'existe pas, ou l'élément a été supprimé.",
+    'A required field is missing or has an invalid value.': 'Un champ obligatoire est manquant ou a une valeur invalide.',
+    'An unexpected error occurred. It has been written to the logs.': "Une erreur inattendue s'est produite. Elle a été écrite dans les journaux.",
+    'Error %(code)d': 'Erreur %(code)d',
+    'Back to the dashboard': 'Retour au tableau de bord',
     'Data retention': 'Conservation des données',
     'Purged every night; 0 keeps everything. Leaks themselves are kept: deleting one would make it come back as new at the next scan.': 'Purge chaque nuit ; 0 conserve tout. Les fuites elles-mêmes sont conservées : en supprimer une la ferait revenir comme nouvelle au scan suivant.',
     'Scan history and archived reports (days)': 'Historique des scans et rapports archivés (jours)',
