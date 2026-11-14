@@ -20,6 +20,7 @@ from .web import api, audit_page, auth, dashboard, news_pages, notifications, re
 from .web.common import BASE, render
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+logging.getLogger("apscheduler").setLevel(logging.WARNING)  # one line per job run would flood the logs (heartbeat every minute)
 
 
 @asynccontextmanager

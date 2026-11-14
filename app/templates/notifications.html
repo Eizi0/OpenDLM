@@ -38,6 +38,24 @@
 </section>
 
 <section class="card">
+  <header><h2>{{ _("Heartbeat") }}</h2>{% if heartbeat_host %}<span class="pill ok">{{ _("Every minute") }}</span>{% endif %}</header>
+  <div class="pad muted" style="font-size:13px">{{ _("Give the URL of a push monitor (Uptime Kuma \"Push\" monitor, Healthchecks.io, Better Stack...). OpenDLM calls it every minute: if the calls stop, your monitor warns you. When no scan ran for 26 hours, or every source failed, the call reports status=down.") }}</div>
+  {% if heartbeat_host %}
+  <div class="row">
+    <div style="flex:1 1 220px;min-width:0"><span class="mono"><b>{{ heartbeat_host }}</b></span><div class="muted" style="font-size:12px">{{ _("Set by OPENDLM_HEARTBEAT_URL") if heartbeat_origin == "env" else _("The full URL contains a token: it is stored encrypted and not displayed.") }}</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <form method="post" action="/notifications/heartbeat/test"><button class="btn small" type="submit">{{ _("Send a heartbeat now") }}</button></form>
+      {% if heartbeat_origin == "ui" %}<form method="post" action="/notifications/heartbeat/delete"><button class="btn small" type="submit">{{ _("Remove") }}</button></form>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+  <form method="post" action="/notifications/heartbeat" class="inline pad" style="border-top:1px solid var(--line2)">
+    <input type="password" name="url" placeholder="https://kuma.example.com/api/push/AbCdEf123" aria-label="{{ _('Push monitor URL') }}" autocomplete="off" required style="min-width:0;flex:3 1 320px;width:auto">
+    <button class="btn primary" type="submit">{{ _("Save") if not heartbeat_host else _("Replace") }}</button>
+  </form>
+</section>
+
+<section class="card">
   <header><h2>{{ _("Rules") }}</h2><a href="/settings" style="color:var(--accent)">{{ _("Change in Settings") }}</a></header>
   <div class="row"><div style="flex:1 1 260px"><b>{{ _("Immediate alert") }}</b><div class="muted">{{ _("As soon as a new leak is detected") }}</div></div>
     <span class="pill">{{ {"low": _("All leaks"), "high": _("High and critical"), "critical": _("Critical only")}.get(min_severity, min_severity) }}</span></div>

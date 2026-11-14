@@ -90,6 +90,8 @@ FLASH = {
     "last_admin": N_("You cannot remove or demote the last administrator."),
     "twofa_enabled": N_("Two-factor authentication enabled."),
     "twofa_disabled": N_("Two-factor authentication disabled."),
+    "heartbeat_saved": N_("Heartbeat URL saved: OpenDLM calls it every minute."),
+    "heartbeat_removed": N_("Heartbeat URL removed."),
     "scan_started": N_("Scan started: results appear on this page as soon as it ends."),
     "scan_running": N_("A scan of this domain is already running."),
     "twofa_required": N_("Two-factor authentication is required for your role: set it up to continue."),

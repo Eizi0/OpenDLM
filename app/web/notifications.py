@@ -1,10 +1,12 @@
-"""Notification channels."""
+"""Notification channels and the heartbeat to a push monitor."""
+
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import channels
+from .. import channels, heartbeat, scheduler
 from ..config import settings
 from ..deps import get_session, require_admin
 from ..i18n import t
@@ -30,7 +32,33 @@ def notifications_page(request: Request, session: Session = Depends(get_session)
         url = channels.channel_url(ch)
         stored.append({"ch": ch, "kind": channels.mask(url) if url else None})
     from_env = [channels.mask(u) for u in settings.notify_url_list]
-    return render(request, "notifications.html", {"stored": stored, "from_env": from_env, "min_severity": cfg.alert_min_severity})
+    hb = cfg.heartbeat_url
+    return render(request, "notifications.html", {
+        "stored": stored, "from_env": from_env, "min_severity": cfg.alert_min_severity,
+        "heartbeat_host": urlsplit(hb).netloc if hb else None, "heartbeat_origin": cfg.source("heartbeat_url"),
+    })
+
+
+@router.post("/notifications/heartbeat")
+def save_heartbeat(url: str = Form(...), session: Session = Depends(get_session)):
+    if not heartbeat.valid_url(url):
+        return redirect("/notifications", error="invalid_url")
+    cfg.save(session, {"heartbeat_url": url.strip()})
+    scheduler.apply_schedule()
+    return redirect("/notifications", notice="heartbeat_saved")
+
+
+@router.post("/notifications/heartbeat/delete")
+def delete_heartbeat(session: Session = Depends(get_session)):
+    cfg.clear(session, "heartbeat_url")
+    scheduler.apply_schedule()
+    return redirect("/notifications", notice="heartbeat_removed")
+
+
+@router.post("/notifications/heartbeat/test")
+def test_heartbeat(session: Session = Depends(get_session)):
+    ok = heartbeat.beat(session)
+    return redirect("/notifications", notice="test_sent" if ok else None, error=None if ok else "test_failed")
 
 
 @router.post("/notifications/channels")

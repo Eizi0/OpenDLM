@@ -47,7 +47,7 @@ Everything is configured **in the web interface**, by an administrator:
 | Page | What you set |
 |---|---|
 | **Sources** | API key per connector (Have I Been Pwned, Hudson Rock, ransomware.live), with a *Test connection* button; RSS/Atom news feeds |
-| **Notifications** | Notification channels (any [Apprise](https://github.com/caronc/apprise) URL: Discord, ntfy, e-mail, Matrix...), with a per-channel test |
+| **Notifications** | Notification channels (any [Apprise](https://github.com/caronc/apprise) URL: Discord, ntfy, e-mail, Matrix...), with a per-channel test; a heartbeat URL for a push monitor ([Uptime Kuma](https://github.com/louislam/uptime-kuma) "Push" monitor, Healthchecks.io...), called every minute and reporting `status=down` when scans stop or every source fails |
 | **Settings** | Default language, timezone, scan and report schedule, alert threshold, news polling and retention |
 | **Users** | Accounts and roles (administrator or read-only viewer) |
 

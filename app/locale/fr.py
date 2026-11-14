@@ -1,6 +1,20 @@
 """French catalog: English message id -> French text."""
 
 MESSAGES: dict[str, str] = {
+    'Heartbeat URL saved: OpenDLM calls it every minute.': "URL de signal de vie enregistrée : OpenDLM l'appelle chaque minute.",
+    'Heartbeat URL removed.': 'URL de signal de vie supprimée.',
+    'Heartbeat': 'Signal de vie',
+    'Every minute': 'Chaque minute',
+    'Give the URL of a push monitor (Uptime Kuma "Push" monitor, Healthchecks.io, Better Stack...). OpenDLM calls it every minute: if the calls stop, your monitor warns you. When no scan ran for 26 hours, or every source failed, the call reports status=down.': "Indiquez l'URL d'une sonde « push » (sonde Push d'Uptime Kuma, Healthchecks.io, Better Stack...). OpenDLM l'appelle chaque minute : si les appels s'arrêtent, votre outil de supervision vous prévient. Si aucun scan n'a eu lieu depuis 26 heures, ou si toutes les sources ont échoué, l'appel signale status=down.",
+    'Set by OPENDLM_HEARTBEAT_URL': 'Défini par OPENDLM_HEARTBEAT_URL',
+    'The full URL contains a token: it is stored encrypted and not displayed.': "L'URL complète contient un jeton : elle est stockée chiffrée et n'est pas affichée.",
+    'Send a heartbeat now': 'Envoyer un signal maintenant',
+    'Remove': 'Retirer',
+    'Push monitor URL': 'URL de la sonde push',
+    'Replace': 'Remplacer',
+    'Heartbeat URL saved': 'URL de signal de vie enregistrée',
+    'Heartbeat URL removed': 'URL de signal de vie supprimée',
+    'Heartbeat sent': 'Signal de vie envoyé',
     'Bad request': 'Requête invalide',
     'Sign-in required': 'Connexion requise',
     'Access refused': 'Accès refusé',
