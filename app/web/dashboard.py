@@ -1,5 +1,7 @@
 """Dashboard, domains and findings."""
 
+import logging
+
 from datetime import timedelta
 from urllib.parse import urlencode
 
@@ -18,6 +20,7 @@ from ..notifier import Notifier
 from ..scanner import run_scan, scan_addresses
 from .common import redirect, render
 
+log = logging.getLogger("opendlm.web")
 router = APIRouter(dependencies=[Depends(require_user)])
 
 MAX_ADDRESSES = 500
@@ -109,10 +112,14 @@ def scan_domain(domain_id: int, session: Session = Depends(get_session)):
             target = bg.get(Domain, domain_id)
             if target is None:
                 return
+            new, errors = 0, 0
             if connectors:
-                run_scan(bg, target, connectors, notifier)
+                result = run_scan(bg, target, connectors, notifier)
+                new, errors = new + len(result.new), errors + len(result.errors)
             if address_connectors:
-                scan_addresses(bg, target, address_connectors, notifier, limit=MANUAL_ADDRESS_BATCH)  # the rest follows hourly
+                result = scan_addresses(bg, target, address_connectors, notifier, limit=MANUAL_ADDRESS_BATCH)  # the rest follows hourly
+                new, errors = new + len(result.new), errors + len(result.errors)
+            log.info("manual scan %s: %d new, %d error(s)", target.name, new, errors)
 
     session.close()  # the scan opens its own session; nothing from this request may stay open alongside it
     if not scan_jobs.start(domain_id, work):
