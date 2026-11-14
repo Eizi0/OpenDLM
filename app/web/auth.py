@@ -11,7 +11,7 @@ from ..deps import get_session, has_users
 from ..runtime_config import cfg
 from ..i18n import LANGUAGES, t
 from ..models import User
-from .. import twofa
+from .. import audit, twofa
 from ..security import (
     SESSION_COOKIE,
     SESSION_MAX_AGE,
@@ -74,6 +74,7 @@ def setup_submit(
     user = User(username=username, password_hash=hash_password(password), role="admin")
     session.add(user)
     session.commit()
+    audit.record("/setup", "ok", user.username, request_ip(request))
     response = RedirectResponse("/", status_code=303)
     set_session_cookie(response, user, session)
     return response
@@ -96,12 +97,15 @@ def login_submit(
     key = request_ip(request)
     wait = throttle.retry_after(key)
     if wait:
+        audit.record("/login", "refused", username.strip().lower()[:64], key, {"reason": "throttled"})
         return render(request, "login.html", {"error": t("Too many attempts. Try again in %(s)d s.", s=wait), "username": username}, status_code=429)
     user = authenticate(session, username, password)
     if user is None:
+        audit.record("/login", "refused", username.strip().lower()[:64], key, {"reason": "bad password"})
         throttle.fail(key)
         return render(request, "login.html", {"error": t("Incorrect username or password."), "username": username}, status_code=401)
     throttle.reset(key)
+    audit.record("/login", "ok", user.username, key, {"step": "password"} if user.totp_enabled else {})
     if user.totp_enabled:
         # Password accepted but no session yet: the second factor is required.
         response = RedirectResponse("/login/2fa", status_code=303)
@@ -127,12 +131,15 @@ def twofa_submit(request: Request, code: str = Form(...), session: Session = Dep
     key = f"2fa:{user.id}:{request_ip(request)}"
     wait = throttle.retry_after(key)
     if wait:
+        audit.record("/login/2fa", "refused", user.username, request_ip(request), {"reason": "throttled"})
         return render(request, "login_2fa.html", {"error": t("Too many attempts. Try again in %(s)d s.", s=wait)}, status_code=429)
     if not (twofa.verify_code(user, code) or twofa.use_recovery_code(user, code)):
+        audit.record("/login/2fa", "refused", user.username, request_ip(request), {"reason": "bad code"})
         throttle.fail(key)
         return render(request, "login_2fa.html", {"error": t("Invalid code. Try again.")}, status_code=401)
     session.commit()  # persists the used time step or the consumed recovery code
     throttle.reset(key)
+    audit.record("/login/2fa", "ok", user.username, request_ip(request))
     response = RedirectResponse("/", status_code=303)
     set_session_cookie(response, user, session)
     response.delete_cookie(twofa.PENDING_COOKIE)
@@ -140,7 +147,10 @@ def twofa_submit(request: Request, code: str = Form(...), session: Session = Dep
 
 
 @router.post("/logout")
-def logout():
+def logout(request: Request, session: Session = Depends(get_session)):
+    user = user_from_token(session, request.cookies.get(SESSION_COOKIE), get_secret(session))
+    if user is not None:
+        audit.record("/logout", "ok", user.username, request_ip(request))
     response = RedirectResponse("/login", status_code=303)
     response.delete_cookie(SESSION_COOKIE)
     return response

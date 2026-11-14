@@ -196,3 +196,17 @@ class ScanRun(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     domain: Mapped[Domain] = relationship(back_populates="runs")
+
+
+class AuditEvent(Base):
+    """Who changed what, and when. The username is copied so the history survives a deleted account."""
+
+    __tablename__ = "audit_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    username: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    action: Mapped[str] = mapped_column(String(120))  # route template, e.g. /domains/{domain_id}/delete
+    params: Mapped[dict] = mapped_column(JSON, default=dict)
+    outcome: Mapped[str] = mapped_column(String(16))  # ok | refused | failed

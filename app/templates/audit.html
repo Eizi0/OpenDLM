@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Audit trail") }} · OpenDLM{% endblock %}
+{% block nav_audit %}active{% endblock %}
+{% block content %}
+<header>
+  <h1>{{ _("Audit trail") }}</h1>
+  <div class="sub">{{ _("Every change made in the interface and every sign-in, with who did it and from where. Form contents (passwords, keys) are never recorded.") }}</div>
+</header>
+
+<section class="card">
+  <form method="get" action="/audit" class="inline pad" style="border-bottom:1px solid var(--line2)">
+    <select name="user" aria-label="{{ _('User') }}">
+      <option value="">{{ _("All users") }}</option>
+      {% for u in users %}<option value="{{ u }}" {% if u == user %}selected{% endif %}>{{ u }}</option>{% endfor %}
+    </select>
+    <select name="outcome" aria-label="{{ _('Outcome') }}">
+      <option value="">{{ _("All outcomes") }}</option>
+      <option value="ok" {% if outcome == "ok" %}selected{% endif %}>{{ _("Done") }}</option>
+      <option value="refused" {% if outcome == "refused" %}selected{% endif %}>{{ _("Refused") }}</option>
+      <option value="failed" {% if outcome == "failed" %}selected{% endif %}>{{ _("Failed") }}</option>
+    </select>
+    <button class="btn" type="submit">{{ _("Filter") }}</button>
+    <span class="muted" style="margin-left:auto">{{ _("%(n)d in total", n=total) }}</span>
+  </form>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>{{ _("Date") }}</th><th>{{ _("User") }}</th><th>{{ _("Action") }}</th><th>{{ _("Details") }}</th><th>{{ _("Address") }}</th><th>{{ _("Outcome") }}</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td class="mono" style="white-space:nowrap">{{ r.at | local }}</td>
+        <td>{{ r.user or "—" }}</td>
+        <td>{{ r.label }}</td>
+        <td class="muted mono" style="font-size:12px">{{ r.params }}</td>
+        <td class="muted mono" style="font-size:12px">{{ r.ip or "" }}</td>
+        <td>{% if r.outcome == "ok" %}<span class="pill ok">{{ _("Done") }}</span>{% elif r.outcome == "refused" %}<span class="pill warn">{{ _("Refused") }}</span>{% else %}<span class="pill bad">{{ _("Failed") }}</span>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">{{ _("No event yet.") }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if page > 1 or has_next %}
+  <div class="inline pad" style="border-top:1px solid var(--line2)">
+    {% if page > 1 %}<a class="btn small" href="/audit?user={{ user | urlencode }}&outcome={{ outcome | urlencode }}&page={{ page - 1 }}">{{ _("Newer") }}</a>{% endif %}
+    {% if has_next %}<a class="btn small" href="/audit?user={{ user | urlencode }}&outcome={{ outcome | urlencode }}&page={{ page + 1 }}">{{ _("Older") }}</a>{% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -8,13 +8,13 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
-from . import migrate, news, scheduler
+from . import audit, migrate, news, scheduler
 from .config import settings
 from .db import SessionLocal
 from .deps import LoginRequired, TwoFactorSetupRequired, has_users
 from .i18n import LANGUAGES, reset_language, set_language, t
-from .security import SESSION_COOKIE, get_secret, user_from_token
-from .web import api, auth, dashboard, news_pages, notifications, reports_pages, settings_pages, sources, tokens, users
+from .security import SESSION_COOKIE, get_secret, request_ip, user_from_token
+from .web import api, audit_page, auth, dashboard, news_pages, notifications, reports_pages, settings_pages, sources, tokens, users
 from .web.common import BASE
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -52,6 +52,20 @@ async def language(request: Request, call_next):
         return await call_next(request)
     finally:
         reset_language(token)
+
+
+@app.middleware("http")
+async def audit_trail(request: Request, call_next):
+    """Record every write request made by a signed-in user (route and path parameters only, never the body)."""
+    response = await call_next(request)
+    if request.method == "POST":
+        route = request.scope.get("route")
+        path = getattr(route, "path", None) or request.url.path
+        user = getattr(request.state, "user", None)
+        if user is not None and path not in audit.SELF_RECORDED:
+            outcome = audit.outcome_of(response.status_code, response.headers.get("location"))
+            await run_in_threadpool(audit.record, path, outcome, user.username, request_ip(request), request.scope.get("path_params") or {})
+    return response
 
 
 @app.middleware("http")
@@ -97,5 +111,6 @@ for module in (auth, dashboard, news_pages, sources, notifications, reports_page
     app.include_router(module.router)
 app.include_router(users.admin_router)
 app.include_router(tokens.router)
+app.include_router(audit_page.router)
 app.include_router(api.router)
 app.include_router(users.profile_router)
