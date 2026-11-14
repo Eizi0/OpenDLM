@@ -53,7 +53,7 @@ Everything is configured **in the web interface**, by an administrator:
 
 Changes apply immediately, without restarting. API keys and channel URLs are **encrypted in the database**; the master key
 lives in the `/data` volume (or in `OPENDLM_SECRET_KEY`), never in the database. Back it up: without it, saved secrets cannot
-be decrypted.
+be decrypted. Backup and restore steps, tested end to end: **[docs/backup.md](docs/backup.md)**.
 
 Every setting can also be given as an environment variable (see `.env.example`); a value saved in the interface takes
 precedence, and *Reset* on a settings section falls back to the environment.
