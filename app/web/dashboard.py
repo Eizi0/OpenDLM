@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .. import health, verification
+from .. import health, scan_jobs, verification
 from ..config import settings
 from ..connectors import active_source_names, build_address_connectors, build_connectors
+from ..db import SessionLocal
 from ..deps import get_session, require_user
 from ..i18n import t
 from ..models import Domain, Finding, MonitoredAddress, NewsItem, ScanRun, utcnow
@@ -78,7 +79,8 @@ def domain_detail(request: Request, domain_id: int, session: Session = Depends(g
         request, "domain.html",
         {"domain": domain, "findings": findings, "runs": runs, "txt": verification.txt_value(domain.verify_token), "has_connectors": bool(active_source_names()),
          "addresses": session.scalars(select(MonitoredAddress).where(MonitoredAddress.domain_id == domain.id).order_by(MonitoredAddress.address)).all(),
-         "address_sources": [c.name for c in build_address_connectors()], "max_addresses": MAX_ADDRESSES},
+         "address_sources": [c.name for c in build_address_connectors()], "max_addresses": MAX_ADDRESSES,
+         "scanning": scan_jobs.running_since(domain.id) is not None},
     )
 
 
@@ -94,18 +96,26 @@ def verify_domain(domain_id: int, session: Session = Depends(get_session)):
 @router.post("/domains/{domain_id}/scan")
 def scan_domain(domain_id: int, session: Session = Depends(get_session)):
     domain = domain_or_404(session, domain_id)
+    if not domain.verified:
+        raise HTTPException(403, t("Ownership of %(domain)s has not been verified", domain=domain.name))
     connectors, address_connectors = build_connectors(), build_address_connectors()
     if not connectors and not address_connectors:
         raise HTTPException(409, t("No active connector: enable the demo mode or set an API key in Sources"))
-    notifier = Notifier()
-    try:
-        if connectors:
-            run_scan(session, domain, connectors, notifier)
-        if address_connectors:
-            scan_addresses(session, domain, address_connectors, notifier, limit=MANUAL_ADDRESS_BATCH)  # the rest follows hourly
-    except PermissionError as e:
-        raise HTTPException(403, str(e))
-    return redirect(f"/domains/{domain.id}")
+
+    def work():
+        notifier = Notifier()
+        with SessionLocal() as bg:
+            target = bg.get(Domain, domain_id)
+            if target is None:
+                return
+            if connectors:
+                run_scan(bg, target, connectors, notifier)
+            if address_connectors:
+                scan_addresses(bg, target, address_connectors, notifier, limit=MANUAL_ADDRESS_BATCH)  # the rest follows hourly
+
+    if not scan_jobs.start(domain_id, work):
+        return redirect(f"/domains/{domain.id}", notice="scan_running")
+    return redirect(f"/domains/{domain.id}", notice="scan_started")
 
 
 @router.post("/findings/{finding_id}/status")

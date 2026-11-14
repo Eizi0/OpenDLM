@@ -1,17 +1,18 @@
 {% extends "base.html" %}
 {% block title %}{{ domain.name }} · OpenDLM{% endblock %}
+{% block head %}{% if scanning %}<meta http-equiv="refresh" content="4">{% endif %}{% endblock %}
 {% block content %}
 <header style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;align-items:flex-start">
   <div>
     <div class="muted"><a href="/" style="color:var(--accent)">{{ _("Dashboard") }}</a> / {{ _("Domains") }}</div>
     <h1 class="mono" style="margin-top:8px;font-weight:500">{{ domain.name }}</h1>
     <div style="margin-top:8px">
-      {% if domain.verified %}<span class="pill ok">{{ _("Ownership verified") }}</span>{% else %}<span class="pill warn">{{ _("Verification required") }}</span>{% endif %}
+      {% if domain.verified %}<span class="pill ok">{{ _("Ownership verified") }}</span>{% if scanning %} <span class="pill warn">{{ _("Scan in progress…") }}</span>{% endif %}{% else %}<span class="pill warn">{{ _("Verification required") }}</span>{% endif %}
     </div>
   </div>
   {% if domain.verified %}
   <form method="post" action="/domains/{{ domain.id }}/scan">
-    <button class="btn primary" type="submit" {% if not has_connectors %}disabled{% endif %}>{{ _("Scan now") }}</button>
+    <button class="btn primary" type="submit" {% if not has_connectors or scanning %}disabled{% endif %}>{{ _("Scan now") }}</button>
   </form>
   {% endif %}
 </header>

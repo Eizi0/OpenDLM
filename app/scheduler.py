@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import select
 
-from . import news, reports
+from . import news, reports, scan_jobs
 from .config import settings
 from .runtime_config import cfg
 from .connectors import build_address_connectors, build_connectors
@@ -25,7 +25,7 @@ def scan_all() -> None:
     with SessionLocal() as session:
         for domain in session.scalars(select(Domain).where(Domain.verified.is_(True))):
             try:
-                result = run_scan(session, domain, connectors, notifier)
+                result = scan_jobs.run_locked(domain.id, lambda: run_scan(session, domain, connectors, notifier))
                 log.info("scan %s: %d new, %d error(s)", domain.name, len(result.new), len(result.errors))
             except Exception:
                 log.exception("scan %s failed", domain.name)
@@ -40,7 +40,7 @@ def scan_addresses_all() -> None:
     with SessionLocal() as session:
         for domain in session.scalars(select(Domain).where(Domain.verified.is_(True))):
             try:
-                result = scan_addresses(session, domain, connectors, notifier)
+                result = scan_jobs.run_locked(domain.id, lambda: scan_addresses(session, domain, connectors, notifier))
                 if result.new or result.errors:
                     log.info("addresses %s: %d new, %d error(s)", domain.name, len(result.new), len(result.errors))
             except Exception:

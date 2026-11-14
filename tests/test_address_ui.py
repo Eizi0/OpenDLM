@@ -108,5 +108,9 @@ def test_manual_scan_works_with_only_an_address_source(logged_client, cfg_overri
     from app.connectors import leakcheck
 
     monkeypatch.setattr(leakcheck.LeakCheckConnector, "check_address", lambda self, a: called.append(a) or [])
-    assert logged_client.post(f"/domains/{did}/scan").status_code == 303 and called == ["a@exemple.fr"]
+    from app import scan_jobs
+
+    assert logged_client.post(f"/domains/{did}/scan").status_code == 303
+    scan_jobs.wait(did)
+    assert called == ["a@exemple.fr"]
     assert "Switch one on" not in logged_client.get(f"/domains/{did}").text

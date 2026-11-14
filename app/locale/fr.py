@@ -1,6 +1,9 @@
 """French catalog: English message id -> French text."""
 
 MESSAGES: dict[str, str] = {
+    "Scan started: results appear on this page as soon as it ends.": "Scan lancé : les résultats s'affichent sur cette page dès qu'il se termine.",
+    "A scan of this domain is already running.": "Un scan de ce domaine est déjà en cours.",
+    "Scan in progress…": "Scan en cours…",
     " · data: %(classes)s": " · données : %(classes)s",
     " · leaked on %(date)s": " · fuite du %(date)s",
     "# %(kind)s report · %(label)s": "# Rapport %(kind)s · %(label)s",
