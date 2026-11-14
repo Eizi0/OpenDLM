@@ -19,6 +19,7 @@
     </div>
     <nav class="nav">
       <a href="/" class="{% block nav_home %}{% endblock %}">{{ _("Dashboard") }}</a>
+      <a href="/leaks" class="{% block nav_leaks %}{% endblock %}">{{ _("Leaks") }}</a>
       <a href="/news" class="{% block nav_news %}{% endblock %}">{{ _("Leak news") }}</a>
       <a href="/reports" class="{% block nav_reports %}{% endblock %}">{{ _("Reports") }}</a>
       {% if request.state.user.role == "admin" %}

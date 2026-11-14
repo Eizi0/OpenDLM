@@ -11,9 +11,9 @@
 {% endif %}
 
 <section class="kpis">
-  <div class="kpi {% if totals.new %}alert{% endif %}"><span class="muted">{{ _("New leaks to handle") }}</span><b>{{ totals.new }}</b></div>
+  <a href="/leaks?status=new" class="kpi {% if totals.new %}alert{% endif %}"><span class="muted">{{ _("New leaks to handle") }}</span><b>{{ totals.new }}</b></a>
   <div class="kpi"><span class="muted">{{ _("Monitored domains") }}</span><b>{{ totals.domains }}</b></div>
-  <div class="kpi"><span class="muted">{{ _("Recorded leaks") }}</span><b>{{ totals.total }}</b></div>
+  <a href="/leaks" class="kpi"><span class="muted">{{ _("Recorded leaks") }}</span><b>{{ totals.total }}</b></a>
   <div class="kpi {% if mentions %}alert{% endif %}"><span class="muted">{{ _("News mentions (7 d)") }}</span><b>{{ mentions | length }}</b></div>
 </section>
 

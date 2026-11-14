@@ -1,9 +1,10 @@
 """Dashboard, domains and findings."""
 
 from datetime import timedelta
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from .. import health, scan_jobs, verification
@@ -119,8 +120,50 @@ def scan_domain(domain_id: int, session: Session = Depends(get_session)):
     return redirect(f"/domains/{domain_id}", notice="scan_started")
 
 
+LEAKS_PAGE_SIZE = 100
+SEVERITIES = ("critical", "high", "low")
+ALL_STATUSES = ("new", "ack", "resolved", "known")
+
+
+@router.get("/leaks")
+def leaks_page(request: Request, domain: int | None = None, status: str = "", severity: str = "", q: str = "", page: int = 1,
+               session: Session = Depends(get_session)):
+    query = select(Finding)
+    if domain:
+        query = query.where(Finding.domain_id == domain)
+    if status == "open":
+        query = query.where(Finding.status.in_(("new", "ack")))
+    elif status in ALL_STATUSES:
+        query = query.where(Finding.status == status)
+    if severity in SEVERITIES:
+        query = query.where(Finding.severity == severity)
+    q = q.strip()[:120]
+    if q:
+        query = query.where(Finding.identifier.ilike(f"%{q.replace('%', '').replace('_', '')}%"))
+    total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
+    page = max(1, page)
+    order = case((Finding.status == "new", 0), (Finding.status == "ack", 1), else_=2)
+    sev = case((Finding.severity == "critical", 0), (Finding.severity == "high", 1), else_=2)
+    findings = session.scalars(query.order_by(order, sev, Finding.first_seen.desc(), Finding.id.desc())
+                               .offset((page - 1) * LEAKS_PAGE_SIZE).limit(LEAKS_PAGE_SIZE)).all()
+    params = {"domain": domain or "", "status": status, "severity": severity, "q": q}
+    back = "/leaks?" + urlencode({**params, "page": page})
+    return render(request, "leaks.html", {
+        "findings": findings, "domains": session.scalars(select(Domain).order_by(Domain.name)).all(), "f": params,
+        "total": total, "page": page, "has_next": page * LEAKS_PAGE_SIZE < total, "back": back,
+        "query": urlencode(params),
+        "export": urlencode({k: v for k, v in {"status": status if status in ALL_STATUSES else "", "severity": severity,
+                                               "domain": next((d.name for d in session.scalars(select(Domain).where(Domain.id == domain))), "") if domain else ""}.items() if v}),
+    })
+
+
+def _safe_back(back: str) -> str | None:
+    """Only a path of the leaks list may be used to come back: never another site."""
+    return back if back.startswith("/leaks") and "//" not in back and "\\" not in back else None
+
+
 @router.post("/findings/{finding_id}/status")
-def set_finding_status(finding_id: int, status: str = Form(...), session: Session = Depends(get_session)):
+def set_finding_status(finding_id: int, status: str = Form(...), back: str = Form(""), session: Session = Depends(get_session)):
     finding = session.get(Finding, finding_id)
     if finding is None:
         raise HTTPException(404, t("Unknown finding"))
@@ -128,12 +171,12 @@ def set_finding_status(finding_id: int, status: str = Form(...), session: Sessio
         raise HTTPException(422, t("Invalid status"))
     finding.status = status
     session.commit()
-    return redirect(f"/domains/{finding.domain_id}")
+    return redirect(_safe_back(back) or f"/domains/{finding.domain_id}")
 
 
 @router.post("/findings/{finding_id}/ack")
 def ack_finding(finding_id: int, session: Session = Depends(get_session)):
-    return set_finding_status(finding_id, "ack", session)
+    return set_finding_status(finding_id, "ack", "", session)
 
 
 @router.post("/domains/{domain_id}/delete")

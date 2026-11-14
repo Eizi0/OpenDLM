@@ -35,30 +35,8 @@
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="muted">{{ _("%(n)d in total", n=findings | length) }}</span>
       <a class="btn small" href="/api/v1/findings?domain={{ domain.name }}&format=csv">CSV</a>
       <a class="btn small" href="/api/v1/findings?domain={{ domain.name }}&format=json">JSON</a></div></header>
-  <div class="scroll">
-  <table>
-    <thead><tr><th>{{ _("Address") }}</th><th>{{ _("Breach and source") }}</th><th>{{ _("Date") }}</th><th>{{ _("Data exposed") }}</th><th>{{ _("Severity") }}</th><th>{{ _("Status") }}</th><th></th></tr></thead>
-    <tbody>
-    {% for f in findings %}
-      <tr class="{{ 'new' if f.status == 'new' else '' }}">
-        <td class="mono">{{ f.identifier }}</td>
-        <td><b>{{ f.breach }}</b><br><span class="muted">{{ f.source }}</span></td>
-        <td>{{ f.breach_date | local("date") if f.breach_date else "—" }}<br><span class="muted">{{ _("seen on %(date)s", date=f.first_seen | local("date")) }}</span></td>
-        <td class="muted">{{ f.data_classes | join(", ") }}</td>
-        <td><span class="pill {{ f.severity }}">{{ severity_label(f.severity) }}</span></td>
-        <td>{% if f.status == "new" %}<span class="pill bad">{{ _("New") }}</span>{% elif f.status == "ack" %}<span class="pill warn">{{ _("Acknowledged") }}</span>{% elif f.status == "resolved" %}<span class="pill ok">{{ _("Handled") }}</span>{% else %}<span class="pill">{{ _("Known") }}</span>{% endif %}</td>
-        <td><div style="display:flex;gap:6px;flex-wrap:wrap">
-          {% if f.status == "new" %}<form method="post" action="/findings/{{ f.id }}/status"><input type="hidden" name="status" value="ack"><button class="btn small" type="submit">{{ _("Acknowledge") }}</button></form>{% endif %}
-          {% if f.status in ("new", "ack") %}<form method="post" action="/findings/{{ f.id }}/status"><input type="hidden" name="status" value="resolved"><button class="btn small" type="submit">{{ _("Mark handled") }}</button></form>{% endif %}
-          {% if f.status == "resolved" %}<form method="post" action="/findings/{{ f.id }}/status"><input type="hidden" name="status" value="new"><button class="btn small" type="submit">{{ _("Reopen") }}</button></form>{% endif %}
-        </div></td>
-      </tr>
-    {% else %}
-      <tr><td colspan="7" class="muted">{{ _("No leak recorded. Run a first scan: it creates the baseline without alerting.") }}</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  </div>
+  {% set show_domain = false %}{% set back = "" %}
+  {% include "_findings_table.html" %}
   <div class="foot">{{ _("Only the address, the breach name, the date and the kinds of data are kept: never a password or leaked content. HIBP data is licensed CC BY 4.0.") }}</div>
 </section>
 

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Leaks") }} · OpenDLM{% endblock %}
+{% block nav_leaks %}active{% endblock %}
+{% block content %}
+<header>
+  <h1>{{ _("Leaks") }}</h1>
+  <div class="sub">{{ _("Every leak found on every domain, the ones to handle first.") }}</div>
+</header>
+
+<section class="card">
+  <form method="get" action="/leaks" class="inline pad" style="border-bottom:1px solid var(--line2)">
+    <input type="search" name="q" value="{{ f.q }}" placeholder="{{ _('Search an address') }}" aria-label="{{ _('Search an address') }}" maxlength="120" style="min-width:0;flex:1 1 200px">
+    <select name="domain" aria-label="{{ _('Domain') }}">
+      <option value="">{{ _("All domains") }}</option>
+      {% for d in domains %}<option value="{{ d.id }}" {% if f.domain == d.id %}selected{% endif %}>{{ d.name }}</option>{% endfor %}
+    </select>
+    <select name="status" aria-label="{{ _('Status') }}">
+      <option value="">{{ _("All statuses") }}</option>
+      <option value="open" {% if f.status == "open" %}selected{% endif %}>{{ _("To handle (new or acknowledged)") }}</option>
+      <option value="new" {% if f.status == "new" %}selected{% endif %}>{{ _("New") }}</option>
+      <option value="ack" {% if f.status == "ack" %}selected{% endif %}>{{ _("Acknowledged") }}</option>
+      <option value="resolved" {% if f.status == "resolved" %}selected{% endif %}>{{ _("Handled") }}</option>
+      <option value="known" {% if f.status == "known" %}selected{% endif %}>{{ _("Known") }}</option>
+    </select>
+    <select name="severity" aria-label="{{ _('Severity') }}">
+      <option value="">{{ _("All severities") }}</option>
+      {% for s in ("critical", "high", "low") %}<option value="{{ s }}" {% if f.severity == s %}selected{% endif %}>{{ severity_label(s) }}</option>{% endfor %}
+    </select>
+    <button class="btn" type="submit">{{ _("Filter") }}</button>
+  </form>
+  <header><h2>{{ _("%(n)d in total", n=total) }}</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn small" href="/api/v1/findings?{{ export }}{{ '&' if export else '' }}format=csv">CSV</a>
+      <a class="btn small" href="/api/v1/findings?{{ export }}{{ '&' if export else '' }}format=json">JSON</a>
+    </div>
+  </header>
+  {% set show_domain = true %}
+  {% set empty_text = _("No leak matches these filters.") %}
+  {% include "_findings_table.html" %}
+  {% if page > 1 or has_next %}
+  <div class="inline pad" style="border-top:1px solid var(--line2)">
+    {% if page > 1 %}<a class="btn small" href="/leaks?{{ query }}&page={{ page - 1 }}">{{ _("Previous") }}</a>{% endif %}
+    {% if has_next %}<a class="btn small" href="/leaks?{{ query }}&page={{ page + 1 }}">{{ _("Next") }}</a>{% endif %}
+  </div>
+  {% endif %}
+  <div class="foot">{{ _("Only the address, the breach name, the date and the kinds of data are kept: never a password or leaked content. HIBP data is licensed CC BY 4.0.") }}</div>
+</section>
+{% endblock %}

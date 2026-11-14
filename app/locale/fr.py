@@ -1,6 +1,19 @@
 """French catalog: English message id -> French text."""
 
 MESSAGES: dict[str, str] = {
+    'Leaks': 'Fuites',
+    'Every leak found on every domain, the ones to handle first.': "Toutes les fuites trouvées sur tous les domaines, les plus urgentes d'abord.",
+    'Search an address': 'Rechercher une adresse',
+    'All domains': 'Tous les domaines',
+    'All statuses': 'Tous les statuts',
+    'To handle (new or acknowledged)': 'À traiter (nouvelles ou acquittées)',
+    'All severities': 'Toutes les gravités',
+    'No leak matches these filters.': 'Aucune fuite ne correspond à ces filtres.',
+    'Previous': 'Précédent',
+    'Next': 'Suivant',
+    'Domain': 'Domaine',
+    'Status': 'Statut',
+    'Severity': 'Gravité',
     'Heartbeat URL saved: OpenDLM calls it every minute.': "URL de signal de vie enregistrée : OpenDLM l'appelle chaque minute.",
     'Heartbeat URL removed.': 'URL de signal de vie supprimée.',
     'Heartbeat': 'Signal de vie',
