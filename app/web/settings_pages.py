@@ -19,6 +19,7 @@ SECTIONS = {
     "security": ("require_2fa",),
     "alerts": ("alert_min_severity",),
     "news": ("news_interval_minutes", "news_retention_days", "allow_private_feeds"),
+    "retention": ("history_retention_days", "audit_retention_days"),
 }
 
 

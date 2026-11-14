@@ -50,6 +50,8 @@ SPECS: dict[str, Spec] = {s.key: s for s in [
     Spec("news_interval_minutes", "int", "news", low=5, high=1440),
     Spec("news_retention_days", "int", "news", low=1, high=3650),
     Spec("allow_private_feeds", "bool", "news"),
+    Spec("history_retention_days", "int", "retention", low=0, high=3650),
+    Spec("audit_retention_days", "int", "retention", low=0, high=3650),
     Spec("timezone", "str", "general"),
     Spec("language", "choice", "general", choices=("en", "fr")),
 ]}

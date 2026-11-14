@@ -1,6 +1,10 @@
 """French catalog: English message id -> French text."""
 
 MESSAGES: dict[str, str] = {
+    'Data retention': 'Conservation des données',
+    'Purged every night; 0 keeps everything. Leaks themselves are kept: deleting one would make it come back as new at the next scan.': 'Purge chaque nuit ; 0 conserve tout. Les fuites elles-mêmes sont conservées : en supprimer une la ferait revenir comme nouvelle au scan suivant.',
+    'Scan history and archived reports (days)': 'Historique des scans et rapports archivés (jours)',
+    'Audit trail (days)': "Journal d'audit (jours)",
     'API key removed': "Clé d'API supprimée",
     'API key saved': "Clé d'API enregistrée",
     'API token created': "Jeton d'API créé",

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import select
 
-from . import news, reports, scan_jobs
+from . import news, reports, retention, scan_jobs
 from .config import settings
 from .runtime_config import cfg
 from .connectors import build_address_connectors, build_connectors
@@ -62,6 +62,14 @@ def run_report(kind: str) -> None:
             log.exception("report %s failed", kind)
 
 
+def run_retention() -> None:
+    with SessionLocal() as session:
+        try:
+            retention.purge(session)
+        except Exception:
+            log.exception("retention purge failed")
+
+
 _scheduler: BackgroundScheduler | None = None
 
 
@@ -79,6 +87,7 @@ def apply_schedule() -> None:
             _scheduler.add_job(run_report, "cron", args=[kind], hour=cfg.report_hour, timezone=tz, id=job_id, replace_existing=True, max_instances=1, coalesce=True, **extra)
         elif _scheduler.get_job(job_id):
             _scheduler.remove_job(job_id)
+    _scheduler.add_job(run_retention, "cron", hour=3, minute=30, timezone=tz, id="retention", replace_existing=True, max_instances=1, coalesce=True)
     if _scheduler.get_job("address-scan") is None:
         _scheduler.add_job(scan_addresses_all, "interval", hours=1, id="address-scan", max_instances=1, coalesce=True,
                            next_run_time=datetime.now(timezone.utc) + timedelta(minutes=2))

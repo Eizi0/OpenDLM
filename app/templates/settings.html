@@ -80,4 +80,17 @@
   </form>
   <form method="post" action="/settings/news/reset" class="pad" style="padding-top:0"><button class="btn small" type="submit">{{ _("Reset to environment / default") }}</button></form>
 </section>
+
+<section class="card">
+  <header><h2>{{ _("Data retention") }}</h2></header>
+  <form method="post" action="/settings/retention" class="stack pad" style="max-width:520px">
+    <div class="muted" style="font-size:13px">{{ _("Purged every night; 0 keeps everything. Leaks themselves are kept: deleting one would make it come back as new at the next scan.") }}</div>
+    <label for="history_retention_days">{{ _("Scan history and archived reports (days)") }} {{ origin("history_retention_days") }}</label>
+    <input type="number" id="history_retention_days" name="history_retention_days" min="0" max="3650" value="{{ v.history_retention_days }}" required>
+    <label for="audit_retention_days">{{ _("Audit trail (days)") }} {{ origin("audit_retention_days") }}</label>
+    <input type="number" id="audit_retention_days" name="audit_retention_days" min="0" max="3650" value="{{ v.audit_retention_days }}" required>
+    <div style="margin-top:10px"><button class="btn primary" type="submit">{{ _("Save") }}</button></div>
+  </form>
+  <form method="post" action="/settings/retention/reset" class="pad" style="padding-top:0"><button class="btn small" type="submit">{{ _("Reset to environment / default") }}</button></form>
+</section>
 {% endblock %}

@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     ransomware_live_key: str = ""  # ransomware.live PRO API key (free)
     news_interval_minutes: int = 30
     news_retention_days: int = 90
+    history_retention_days: int = 400  # scan history and archived reports (0 = keep forever)
+    audit_retention_days: int = 365  # audit trail (0 = keep forever)
     allow_private_feeds: bool = False  # allow feeds on the internal network
     report_daily: bool = True
     report_monthly: bool = True
