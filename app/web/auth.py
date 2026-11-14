@@ -21,6 +21,7 @@ from ..security import (
     hash_password,
     make_session_token,
     password_problem,
+    request_ip,
     user_from_token,
 )
 from .common import render
@@ -92,7 +93,7 @@ def login_submit(
     password: str = Form(...),
     session: Session = Depends(get_session),
 ):
-    key = request.client.host if request.client else "unknown"
+    key = request_ip(request)
     wait = throttle.retry_after(key)
     if wait:
         return render(request, "login.html", {"error": t("Too many attempts. Try again in %(s)d s.", s=wait), "username": username}, status_code=429)
@@ -123,7 +124,7 @@ def twofa_submit(request: Request, code: str = Form(...), session: Session = Dep
     user = twofa.user_from_pending(session, request.cookies.get(twofa.PENDING_COOKIE))
     if user is None:
         return RedirectResponse("/login", status_code=303)
-    key = f"2fa:{user.id}:{request.client.host if request.client else 'unknown'}"
+    key = f"2fa:{user.id}:{request_ip(request)}"
     wait = throttle.retry_after(key)
     if wait:
         return render(request, "login_2fa.html", {"error": t("Too many attempts. Try again in %(s)d s.", s=wait)}, status_code=429)

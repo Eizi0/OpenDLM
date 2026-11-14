@@ -41,6 +41,7 @@ services:
       OPENDLM_SCAN_HOUR: ${OPENDLM_SCAN_HOUR:-6}
       OPENDLM_TIMEZONE: ${OPENDLM_TIMEZONE:-Europe/Paris}
       OPENDLM_COOKIE_SECURE: ${OPENDLM_COOKIE_SECURE:-false}
+      OPENDLM_TRUSTED_PROXIES: ${OPENDLM_TRUSTED_PROXIES:-}
     volumes:
       - appdata:/data
     # Local only; to expose it, go through an HTTPS reverse proxy.

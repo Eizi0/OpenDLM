@@ -34,7 +34,11 @@ Open http://127.0.0.1:8080. On first run a page asks you to create the administr
 12 characters). Then add your keys on the Sources page. In demo mode a fake connector simulates a new leak from the second scan on (the news feed is real).
 
 By default the app only listens on `127.0.0.1`. To open it to a network, put it behind an HTTPS reverse proxy
-(Traefik, Caddy, nginx) and set `OPENDLM_COOKIE_SECURE=true`.
+(Traefik, Caddy, nginx), set `OPENDLM_COOKIE_SECURE=true`, and set `OPENDLM_TRUSTED_PROXIES` to the proxy's address
+or network (for example `172.16.0.0/12` for a proxy on the Docker network). Without it, failed-login limits count every
+visitor as the proxy, and a few wrong passwords would lock everyone out for five minutes.
+Once a proxy is trusted, only expose the app through it (remove the `ports:` mapping of the `app` service): a direct
+connection from the trusted network could otherwise claim any address.
 
 ## Configuration
 

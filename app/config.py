@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     alert_min_severity: str = "low"  # low | high | critical: immediate alert threshold
     scheduler_enabled: bool = True
     cookie_secure: bool = False  # true behind an HTTPS proxy
+    trusted_proxies: str = ""  # comma-separated IPs/CIDRs of reverse proxies whose X-Forwarded-For is believed
     scan_hour: int = 6
     timezone: str = "Europe/Paris"
     user_agent: str = "OpenDLM/0.1 (self-hosted leak monitor)"

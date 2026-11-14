@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import ipaddress
 import os
 import time
 from collections.abc import Callable
@@ -9,6 +10,7 @@ from itsdangerous import BadSignature, URLSafeTimedSerializer
 from sqlalchemy.orm import Session
 
 from . import crypto
+from .config import settings
 from .i18n import t
 from .models import User
 
@@ -117,3 +119,47 @@ class LoginThrottle:
 
     def reset(self, key: str) -> None:
         self._fails.pop(key, None)
+
+
+# --- Client address, aware of trusted reverse proxies ---
+
+
+def _networks(spec: str) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+    nets = []
+    for part in spec.split(","):
+        part = part.strip()
+        if part:
+            try:
+                nets.append(ipaddress.ip_network(part, strict=False))
+            except ValueError:
+                continue
+    return nets
+
+
+def _trusted(ip: str, nets) -> bool:
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return any(addr in net for net in nets)
+
+
+def client_ip(peer: str | None, forwarded_for: str | None, trusted: str | None = None) -> str:
+    """Address of the real client.
+
+    X-Forwarded-For is only believed when the direct peer is a trusted proxy. The chain is read from the
+    right, skipping trusted proxies: the first untrusted hop is the client (anything left of it can be forged).
+    """
+    peer = peer or "unknown"
+    nets = _networks(settings.trusted_proxies if trusted is None else trusted)
+    if not nets or not forwarded_for or not _trusted(peer, nets):
+        return peer
+    hops = [h.strip() for h in forwarded_for.split(",") if h.strip()]
+    for hop in reversed(hops):
+        if not _trusted(hop, nets):
+            return hop
+    return hops[0] if hops else peer
+
+
+def request_ip(request) -> str:
+    return client_ip(request.client.host if request.client else None, request.headers.get("x-forwarded-for"))
