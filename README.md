@@ -25,10 +25,15 @@ https://github.com/user-attachments/assets/579667c6-dab9-46b4-a264-955c15493ce4
 
 ## Quick start (Docker)
 
+You only need `compose.yaml` and `.env.example` from this repository (or a clone of it):
+
 ```bash
 cp .env.example .env            # then adjust the values
-OPENDLM_DEMO=true docker compose up -d --build
+OPENDLM_DEMO=true docker compose up -d
 ```
+
+Compose pulls the published image `ghcr.io/eizi0/opendlm` (pin a version with `OPENDLM_VERSION=0.1.0` in `.env`).
+From a clone, `docker compose up -d --build` builds it from source instead.
 
 Open http://127.0.0.1:8080. On first run a page asks you to create the administrator account (password of at least
 12 characters). Then add your keys on the Sources page. In demo mode a fake connector simulates a new leak from the second scan on (the news feed is real).
@@ -126,14 +131,10 @@ scrape_configs:
     static_configs: [{ targets: ["your-host:8080"] }]
 ```
 
-## Development
+## Development and contributions
 
-```bash
-docker run --rm -v "$PWD":/srv -w /srv python:3.12-slim \
-  sh -c "pip install -q -r requirements-dev.txt && python -m pytest -q"
-```
-
-Database migrations live in `migrations/` (Alembic) and run at startup.
+See **[CONTRIBUTING.md](CONTRIBUTING.md)**: development setup, tests (SQLite and PostgreSQL), how to add a leak source,
+translations and database migrations.
 
 ## Third-party data
 
