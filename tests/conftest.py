@@ -2,7 +2,8 @@ import os
 import tempfile
 
 # Avant tout import de l'application : base de test locale, pas de PostgreSQL ni de planificateur.
-os.environ["OPENDLM_DATABASE_URL"] = "sqlite://"
+# OPENDLM_TEST_DATABASE_URL runs the suite against PostgreSQL (CI); SQLite in memory otherwise.
+os.environ["OPENDLM_DATABASE_URL"] = os.environ.get("OPENDLM_TEST_DATABASE_URL", "sqlite://")
 os.environ["OPENDLM_SCHEDULER_ENABLED"] = "false"
 os.environ["OPENDLM_REQUIRE_2FA"] = "off"  # existing tests sign in without a second factor
 os.environ["OPENDLM_HUDSON_ROCK_FREE_ENABLED"] = "false"  # no network source unless a test turns it on
